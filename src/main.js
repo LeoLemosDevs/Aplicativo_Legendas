@@ -467,8 +467,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnImportSrtDirect = document.getElementById('btn-import-srt-direct');
   const inputImportSrt = document.getElementById('input-import-srt');
 
+  const btnExportSrtBottom = document.getElementById('btn-export-srt-bottom');
+  const btnBackToLyricsInput = document.getElementById('btn-back-to-lyrics-input');
+  const btnFinishToStyles = document.getElementById('btn-finish-to-styles');
+
   if (btnExportSrt) {
     btnExportSrt.addEventListener('click', () => {
+      exportToSRT();
+    });
+  }
+
+  if (btnExportSrtBottom) {
+    btnExportSrtBottom.addEventListener('click', () => {
       exportToSRT();
     });
   }
@@ -482,6 +492,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnImportSrtDirect) {
     btnImportSrtDirect.addEventListener('click', () => {
       inputImportSrt.click();
+    });
+  }
+
+  if (btnBackToLyricsInput) {
+    btnBackToLyricsInput.addEventListener('click', () => {
+      lyricsInputPanel.classList.remove('hidden');
+      lyricsSyncHud.classList.add('hidden');
+      lyricsEditorPanel.classList.add('hidden');
+    });
+  }
+
+  if (btnFinishToStyles) {
+    btnFinishToStyles.addEventListener('click', () => {
+      const styleTabBtn = Array.from(tabButtons).find(btn => btn.getAttribute('data-tab') === 'tab-styles');
+      if (styleTabBtn) styleTabBtn.click();
     });
   }
 
@@ -640,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showTimingGridEditor() {
-    lyricsInputPanel.classList.remove('hidden');
+    lyricsInputPanel.classList.add('hidden');
     lyricsSyncHud.classList.add('hidden');
     lyricsEditorPanel.classList.remove('hidden');
     
