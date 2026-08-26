@@ -2,6 +2,16 @@
 
 Todas as alterações notáveis deste projeto estão documentadas neste arquivo.
 
+## [1.7.0] - 2026-08-26 (Versão 1.7 - Chroma Key & Camadas Globais)
+### 🎬 Efeitos de Chroma Key em Tempo Real & Controle Global de Camadas
+- **Camadas com Chroma Key (Fundo Transparente):** Suporte para carregar vídeos (`.mp4`, `.webm`) ou imagens/GIFs com tela verde (ex: animação de "Inscreva-se", "Like", "Compartilhe", raios, fumaça e efeitos visuais).
+- **Processador de Remoção de Fundo em Tempo Real:** Motor com tolerância ajustável (5% a 80%), suavidade de borda (feathering) e presets rápidos de 🟢 Verde (`#00FF00`) e 🔵 Azul (`#0000FF`) com seletor livre de cor.
+- **Inserção Direta de Camadas:** Botões dedicados na aba Camadas para inserir Imagens/Fotos e Vídeos com Chroma Key com 1 clique.
+- **Sincronização Total com a Timeline:** Qualquer elemento adicionado aparece instantaneamente na lista de camadas e na trilha da timeline, permitindo mover, redimensionar o tempo de entrada/saída e posicionar livremente pelo mouse.
+- **Transição Automática:** Ao soltar ou adicionar qualquer arquivo, a interface seleciona a camada recém-criada e abre automaticamente suas configurações.
+
+---
+
 ## [1.6.0] - 2026-08-26 (Versão 1.6 - Espectro de Áudio Reativo)
 ### ⚡ Motor de Visualização Sonora & Espectros Reativos
 - **Modelos de Espectro Profissionais:**

@@ -113,45 +113,95 @@ export class CanvasEditor {
     };
   }
 
-  // Foreground Image Layers
-  addForegroundLayer(file) {
+  // Foreground Layers (Images, GIFs, Overlay Videos with Chroma Key)
+  addForegroundLayer(file, options = {}) {
     const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.src = url;
-    img.onload = () => {
-      // Scale down image to fit in the center initially
-      let w = img.width;
-      let h = img.height;
-      const maxW = 600;
-      if (w > maxW) {
-        h = h * (maxW / w);
-        w = maxW;
-      }
-      
-      const layerStart = this.audioManager.trimStart !== undefined ? this.audioManager.trimStart : 0;
-      const layerEnd = this.audioManager.trimEnd !== undefined ? this.audioManager.trimEnd : (this.audioManager.duration || 32);
+    const isVideo = file.type.startsWith('video/') || file.name.toLowerCase().endsWith('.mp4') || file.name.toLowerCase().endsWith('.webm');
+    const layerStart = this.audioManager.trimStart !== undefined ? this.audioManager.trimStart : 0;
+    const layerEnd = this.audioManager.trimEnd !== undefined ? this.audioManager.trimEnd : (this.audioManager.duration || 32);
 
-      const newLayer = {
-        id: 'layer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        type: 'image',
-        file,
-        url,
-        element: img,
-        x: (this.vWidth - w) / 2,
-        y: (this.vHeight - h) / 3, // upper third
-        width: w,
-        height: h,
-        opacity: 1.0,
-        start: layerStart,
-        end: layerEnd
+    if (isVideo) {
+      const vid = document.createElement('video');
+      vid.src = url;
+      vid.crossOrigin = 'anonymous';
+      vid.muted = true;
+      vid.playsInline = true;
+      vid.loop = true;
+      vid.preload = 'auto';
+
+      vid.onloadedmetadata = () => {
+        let w = vid.videoWidth || 640;
+        let h = vid.videoHeight || 360;
+        const maxW = 540;
+        if (w > maxW) {
+          h = h * (maxW / w);
+          w = maxW;
+        }
+
+        const newLayer = {
+          id: 'layer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          type: 'video',
+          file,
+          url,
+          element: vid,
+          x: (this.vWidth - w) / 2,
+          y: (this.vHeight - h) / 2,
+          width: w,
+          height: h,
+          opacity: 1.0,
+          chromaKey: options.chromaKey !== undefined ? options.chromaKey : true, // Auto-enable Chroma Key for overlay videos
+          chromaColor: options.chromaColor || '#00ff00',
+          chromaTolerance: options.chromaTolerance || 0.35,
+          chromaSmoothness: options.chromaSmoothness || 0.1,
+          start: layerStart,
+          end: layerEnd
+        };
+
+        this.layers.push(newLayer);
+        this.selectedLayerId = newLayer.id;
+        this.needsRedraw = true;
+        if (this.onLayersUpdated) this.onLayersUpdated();
       };
-      
-      this.layers.push(newLayer);
-      this.selectedLayerId = newLayer.id;
-      this.needsRedraw = true;
-      if (this.onLayersUpdated) this.onLayersUpdated();
-    };
+      vid.load();
+    } else {
+      const img = new Image();
+      img.src = url;
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        const maxW = 600;
+        if (w > maxW) {
+          h = h * (maxW / w);
+          w = maxW;
+        }
+
+        const newLayer = {
+          id: 'layer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          type: 'image',
+          file,
+          url,
+          element: img,
+          x: (this.vWidth - w) / 2,
+          y: (this.vHeight - h) / 3,
+          width: w,
+          height: h,
+          opacity: 1.0,
+          chromaKey: options.chromaKey !== undefined ? options.chromaKey : false,
+          chromaColor: options.chromaColor || '#00ff00',
+          chromaTolerance: options.chromaTolerance || 0.35,
+          chromaSmoothness: options.chromaSmoothness || 0.1,
+          start: layerStart,
+          end: layerEnd
+        };
+
+        this.layers.push(newLayer);
+        this.selectedLayerId = newLayer.id;
+        this.needsRedraw = true;
+        if (this.onLayersUpdated) this.onLayersUpdated();
+      };
+    }
   }
 
   // Add Visualizer / Audio Spectrum Layer
@@ -446,6 +496,57 @@ export class CanvasEditor {
     ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetW, targetH);
   }
 
+  // Real-time Chroma Key Pixel Processing (Green/Blue Screen Removal)
+  applyChromaKey(ctx, element, x, y, width, height, layer) {
+    if (!this.chromaCanvas) {
+      this.chromaCanvas = document.createElement('canvas');
+      this.chromaCtx = this.chromaCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    
+    // Scale processing canvas
+    const maxProcessW = 640;
+    let procW = element.videoWidth || element.naturalWidth || element.width || width;
+    let procH = element.videoHeight || element.naturalHeight || element.height || height;
+    if (procW > maxProcessW) {
+      procH = Math.round(procH * (maxProcessW / procW));
+      procW = maxProcessW;
+    }
+    
+    if (this.chromaCanvas.width !== procW || this.chromaCanvas.height !== procH) {
+      this.chromaCanvas.width = procW;
+      this.chromaCanvas.height = procH;
+    }
+
+    this.chromaCtx.drawImage(element, 0, 0, procW, procH);
+    const imgData = this.chromaCtx.getImageData(0, 0, procW, procH);
+    const data = imgData.data;
+
+    const hex = (layer.chromaColor || '#00ff00').replace('#', '');
+    const keyR = parseInt(hex.substring(0, 2), 16) || 0;
+    const keyG = parseInt(hex.substring(2, 4), 16) || 255;
+    const keyB = parseInt(hex.substring(4, 6), 16) || 0;
+
+    const tol = (layer.chromaTolerance !== undefined ? layer.chromaTolerance : 0.35) * 441.67;
+    const smooth = (layer.chromaSmoothness !== undefined ? layer.chromaSmoothness : 0.1) * 150;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      const dist = Math.sqrt((r - keyR) ** 2 + (g - keyG) ** 2 + (b - keyB) ** 2);
+      if (dist < tol) {
+        data[i + 3] = 0; // completely transparent
+      } else if (dist < tol + smooth && smooth > 0) {
+        const alpha = (dist - tol) / smooth;
+        data[i + 3] = Math.floor(data[i + 3] * alpha);
+      }
+    }
+
+    this.chromaCtx.putImageData(imgData, 0, 0);
+    ctx.drawImage(this.chromaCanvas, x, y, width, height);
+  }
+
   // Draw everything onto target canvas (either screen preview canvas or high-res export canvas)
   render(targetCanvas, time) {
     const ctx = targetCanvas.getContext('2d');
@@ -466,7 +567,7 @@ export class CanvasEditor {
       this.drawCoverImage(ctx, this.background.element, this.vWidth, this.vHeight);
     }
     
-    // 2. Draw Foreground Layers (Images and Spectrum Visualizers)
+    // 2. Draw Foreground Layers (Images, Overlay Videos, and Spectrum Visualizers)
     this.layers.forEach(layer => {
       if (time >= layer.start && time <= layer.end) {
         ctx.save();
@@ -475,7 +576,26 @@ export class CanvasEditor {
         if (layer.type === 'spectrum') {
           this.drawSpectrum(ctx, layer, time);
         } else if (layer.element) {
-          ctx.drawImage(layer.element, layer.x, layer.y, layer.width, layer.height);
+          // Sync video time if layer is video
+          if (layer.type === 'video') {
+            const relTime = Math.max(0, time - layer.start);
+            const vidDur = layer.element.duration || 1;
+            const targetTime = relTime % vidDur;
+            if (this.audioManager.isPlaying) {
+              if (layer.element.paused) layer.element.play().catch(e => {});
+            } else {
+              if (!layer.element.paused) layer.element.pause();
+              if (Math.abs(layer.element.currentTime - targetTime) > 0.05) {
+                layer.element.currentTime = targetTime;
+              }
+            }
+          }
+
+          if (layer.chromaKey) {
+            this.applyChromaKey(ctx, layer.element, layer.x, layer.y, layer.width, layer.height, layer);
+          } else {
+            ctx.drawImage(layer.element, layer.x, layer.y, layer.width, layer.height);
+          }
         }
         
         // Draw editor borders & handles if selected on display canvas (only if it is the preview canvas, i.e., not during offline render)

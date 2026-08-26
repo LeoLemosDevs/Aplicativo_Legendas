@@ -551,24 +551,31 @@
             <!-- TAB 4: LAYERS -->
             <div id="tab-layers" class="tab-pane">
               <h3>Camadas do Projeto</h3>
-              <p class="tab-desc">Gerencie a ordem de empilhamento, opacidade, tempo e espectros visuais reativos à música.</p>
+              <p class="tab-desc">Gerencie a ordem de empilhamento, opacidade, tempo, efeitos de Chroma Key e espectros de áudio.</p>
 
-              <!-- Add Spectrum Card -->
-              <div class="setting-section" style="margin-bottom: 14px; padding: 12px; background: rgba(6, 182, 212, 0.08); border: 1px dashed #06b6d4; border-radius: 12px; text-align: center;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;">
-                  <i data-lucide="activity" style="color: #06b6d4; width: 16px; height: 16px;"></i>
-                  <span style="font-size: 0.85rem; font-weight: 700; color: #06b6d4;">Visualizador Reativo à Música</span>
+              <!-- Layer Add Actions Grid -->
+              <div class="setting-section" style="margin-bottom: 14px; padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                  <button id="btn-add-image-layer" class="btn btn-secondary btn-small full-width" style="font-size: 0.75rem; padding: 8px 4px;">
+                    <i data-lucide="image-plus"></i> Imagem / Foto
+                  </button>
+                  <input type="file" id="input-add-image-layer" accept="image/*" style="display: none;">
+
+                  <button id="btn-add-chroma-video-layer" class="btn btn-secondary btn-small full-width" style="font-size: 0.75rem; padding: 8px 4px; border-color: rgba(16, 185, 129, 0.4);">
+                    <i data-lucide="video"></i> Vídeo / Overlay
+                  </button>
+                  <input type="file" id="input-add-chroma-video-layer" accept="video/mp4,video/webm,image/gif" style="display: none;">
                 </div>
-                <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px;">Insira um espectro sonoro estilo Trap Nation, onda neon ou equalizador.</p>
-                <button id="btn-add-spectrum" class="btn btn-primary full-width glow-effect" style="background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);">
-                  <i data-lucide="plus-circle"></i> Inserir Espectro de Áudio
+
+                <button id="btn-add-spectrum" class="btn btn-primary full-width glow-effect" style="background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%); font-size: 0.78rem;">
+                  <i data-lucide="activity"></i> Inserir Espectro de Áudio
                 </button>
               </div>
               
               <div id="layers-empty-state" class="empty-state">
                 <i data-lucide="layers"></i>
                 <p>Nenhuma camada adicional criada.</p>
-                <p class="section-desc">Insira um espectro acima ou imagens na aba "Mídia" para gerenciar aqui.</p>
+                <p class="section-desc">Insira um elemento acima ou arraste arquivos do seu computador para cá.</p>
               </div>
               
               <div id="layers-list-container" class="hidden">
@@ -679,6 +686,40 @@
                       <button id="btn-remove-spectrum-center-img" class="btn btn-danger btn-small full-width hidden" style="margin-top: 4px; font-size: 0.7rem;">
                         <i data-lucide="trash-2"></i> Remover Foto Central
                       </button>
+                    </div>
+                  </div>
+
+                  <!-- CHROMA KEY CONTROLS (For Image and Video Layers) -->
+                  <div id="layer-chroma-controls" class="form-group" style="padding: 10px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                      <label for="chk-layer-chroma" style="font-weight: 600; font-size: 0.8rem; color: #10b981; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <input type="checkbox" id="chk-layer-chroma" style="cursor: pointer;">
+                        <span>Ativar Chroma Key (Fundo Transparente)</span>
+                      </label>
+                    </div>
+                    
+                    <div id="layer-chroma-options" class="hidden">
+                      <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+                        <button type="button" id="btn-chroma-preset-green" class="btn btn-secondary btn-small" style="flex: 1; font-size: 0.7rem; padding: 4px;">🟢 Fundo Verde</button>
+                        <button type="button" id="btn-chroma-preset-blue" class="btn btn-secondary btn-small" style="flex: 1; font-size: 0.7rem; padding: 4px;">🔵 Fundo Azul</button>
+                        <input type="color" id="color-layer-chroma" value="#00ff00" style="width: 34px; height: 28px; border: 0; border-radius: 4px; cursor: pointer;" title="Cor exata a remover">
+                      </div>
+
+                      <div class="form-group" style="margin-bottom: 6px;">
+                        <div class="slider-label-row">
+                          <label for="range-layer-chroma-tol" style="font-size: 0.72rem;">Tolerância (Similaridade):</label>
+                          <span id="label-layer-chroma-tol" style="font-size: 0.72rem;">35%</span>
+                        </div>
+                        <input type="range" id="range-layer-chroma-tol" min="0.05" max="0.8" step="0.02" value="0.35">
+                      </div>
+
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <div class="slider-label-row">
+                          <label for="range-layer-chroma-smooth" style="font-size: 0.72rem;">Suavidade da Borda:</label>
+                          <span id="label-layer-chroma-smooth" style="font-size: 0.72rem;">10%</span>
+                        </div>
+                        <input type="range" id="range-layer-chroma-smooth" min="0.0" max="0.4" step="0.02" value="0.1">
+                      </div>
                     </div>
                   </div>
 
