@@ -110,6 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleItalic = document.getElementById('toggle-italic');
   const rangeFontSize = document.getElementById('range-font-size');
   const labelFontSize = document.getElementById('label-font-size');
+  const rangeActiveScale = document.getElementById('range-active-scale');
+  const labelActiveScale = document.getElementById('label-active-scale');
+  const rangeInactiveScale = document.getElementById('range-inactive-scale');
+  const labelInactiveScale = document.getElementById('label-inactive-scale');
   const rangeTextY = document.getElementById('range-text-y');
   const labelTextY = document.getElementById('label-text-y');
   const colorPickerText = document.getElementById('color-picker-text');
@@ -532,22 +536,30 @@ document.addEventListener('DOMContentLoaded', () => {
     
     words.forEach((w, index) => {
       const startSec = w.start !== null ? w.start : 0;
-      const endSec = w.end !== null ? w.end : startSec + 2.0;
+      const endSec = (w.end !== null && w.end > startSec) ? w.end : startSec + 2.5;
       
       srtContent += `${index + 1}\r\n`;
       srtContent += `${formatSRTTime(startSec)} --> ${formatSRTTime(endSec)}\r\n`;
       srtContent += `${w.text}\r\n\r\n`;
     });
     
-    const blob = new Blob([srtContent], { type: 'text/srt;charset=utf-8;' });
+    // Standard text/plain charset UTF-8 for valid .srt SubRip format
+    const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    const projTitle = projectTitleLabel.textContent.trim().replace(/[^a-zA-Z0-9\-_]/g, '_');
-    link.setAttribute("download", `${projTitle || 'legendas'}.srt`);
+    link.href = url;
+    
+    let safeTitle = (projectTitleLabel.textContent || 'legendas').trim().replace(/[^a-zA-Z0-9\-_ \u00C0-\u00FF]/g, '_');
+    if (!safeTitle.toLowerCase().endsWith('.srt')) {
+      safeTitle += '.srt';
+    }
+    link.download = safeTitle;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 200);
   }
 
   // Parse SRT file and populate lyricsSync
@@ -744,6 +756,22 @@ document.addEventListener('DOMContentLoaded', () => {
     canvasEditor.updateStyle('fontSize', parseInt(e.target.value));
   });
 
+  if (rangeActiveScale) {
+    rangeActiveScale.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      labelActiveScale.textContent = val.toFixed(2) + 'x';
+      canvasEditor.updateStyle('activeScale', val);
+    });
+  }
+
+  if (rangeInactiveScale) {
+    rangeInactiveScale.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      labelInactiveScale.textContent = val.toFixed(2) + 'x';
+      canvasEditor.updateStyle('inactiveScale', val);
+    });
+  }
+
   rangeTextY.addEventListener('input', (e) => {
     labelTextY.textContent = e.target.value + '%';
     canvasEditor.updateStyle('yPosition', parseFloat(e.target.value) / 100);
@@ -824,7 +852,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Selected Layer Details Panel
     const selectedLayer = layers.find(l => l.id === selectedId);
-    if (selectedLayer) {
+    
+    // Hide detail box if no layer is selected
+    if (!selectedLayer || selectedId === 'lyrics_layer') {
+      selectedLayerSettingsBox.classList.add('hidden');
+    } else {
       selectedLayerSettingsBox.classList.remove('hidden');
       layerDetailTitle.textContent = selectedLayer.name;
       
@@ -833,9 +865,19 @@ document.addEventListener('DOMContentLoaded', () => {
       labelLayerOpacity.textContent = Math.round(selectedLayer.opacity * 100) + '%';
       numLayerStart.value = selectedLayer.start;
       numLayerEnd.value = selectedLayer.end;
-    } else {
-      selectedLayerSettingsBox.classList.add('hidden');
     }
+  }
+
+  // Click outside canvas / on viewport background to deselect all
+  const editorViewport = document.querySelector('.editor-viewport');
+  if (editorViewport) {
+    editorViewport.addEventListener('pointerdown', (e) => {
+      if (e.target === editorViewport || e.target.id === 'main-canvas-container' || e.target.id === 'aspect-frame') {
+        canvasEditor.selectedLayerId = null;
+        canvasEditor.needsRedraw = true;
+        updateLayersUI();
+      }
+    });
   }
 
   rangeLayerOpacity.addEventListener('input', (e) => {

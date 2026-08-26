@@ -18,6 +18,8 @@ export class CanvasEditor {
     this.lyricsStyle = {
       fontFamily: 'Bebas Neue',
       fontSize: 70,
+      activeScale: 1.3, // Zoom magnification on the active singing line (1.0x - 2.5x)
+      inactiveScale: 0.75, // Scale for inactive surrounding lines (0.4x - 1.0x)
       bold: true,
       italic: false,
       align: 'center', // left, right, center, justify
@@ -228,23 +230,9 @@ export class CanvasEditor {
       }
     }
     
-    // 2. Check if clicked inside the lyrics container bounding box
-    const lyc = this.lyricsContainer;
-    if (x >= lyc.x && x <= lyc.x + lyc.width &&
-        y >= lyc.y && y <= lyc.y + lyc.height) {
-      this.selectedLayerId = 'lyrics_layer';
-      this.isDragging = true;
-      this.dragOffsetX = x - lyc.x;
-      this.dragOffsetY = y - lyc.y;
-      
-      if (this.onLayerSelected) this.onLayerSelected('lyrics_layer');
-      return;
-    }
-    
-    // 3. Check if clicked inside any layer body (backwards to prioritize top elements)
+    // 2. Check if clicked inside any foreground image layer (prioritize top elements)
     for (let i = this.layers.length - 1; i >= 0; i--) {
       const layer = this.layers[i];
-      // Only select if the layer is currently visible
       if (currentTime >= layer.start && currentTime <= layer.end) {
         if (x >= layer.x && x <= layer.x + layer.width &&
             y >= layer.y && y <= layer.y + layer.height) {
@@ -252,16 +240,34 @@ export class CanvasEditor {
           this.isDragging = true;
           this.dragOffsetX = x - layer.x;
           this.dragOffsetY = y - layer.y;
+          this.needsRedraw = true;
           
-          // Trigger layer selected callback if exists
           if (this.onLayerSelected) this.onLayerSelected(layer.id);
           return;
         }
       }
     }
+
+    // 3. Check if clicked directly on the lyrics text area or if lyrics is already selected
+    const lyc = this.lyricsContainer;
+    const yCenter = lyc.y + lyc.height / 2;
+    const isTextLineZone = (Math.abs(y - yCenter) < this.lyricsStyle.fontSize * 1.8) &&
+                           (x >= lyc.x && x <= lyc.x + lyc.width);
     
-    // Clicked empty canvas space
+    if ((this.selectedLayerId === 'lyrics_layer' && x >= lyc.x && x <= lyc.x + lyc.width && y >= lyc.y && y <= lyc.y + lyc.height) || isTextLineZone) {
+      this.selectedLayerId = 'lyrics_layer';
+      this.isDragging = true;
+      this.dragOffsetX = x - lyc.x;
+      this.dragOffsetY = y - lyc.y;
+      this.needsRedraw = true;
+      
+      if (this.onLayerSelected) this.onLayerSelected('lyrics_layer');
+      return;
+    }
+    
+    // Clicked on empty canvas space: cleanly deselect everything
     this.selectedLayerId = null;
+    this.needsRedraw = true;
     if (this.onLayerSelected) this.onLayerSelected(null);
   }
 
@@ -586,14 +592,18 @@ export class CanvasEditor {
       ctx.save();
       ctx.globalAlpha = lineOpacity * fadeOpacity;
       
-      // Calculate line scale based on active focus distance
+      // Calculate line scale based on active focus distance and user configurable activeScale
+      const activeZoom = (this.lyricsStyle.activeScale !== undefined) ? this.lyricsStyle.activeScale : 1.3;
+      const inactiveScale = (this.lyricsStyle.inactiveScale !== undefined) ? this.lyricsStyle.inactiveScale : 0.75;
+      
       let lineScale = 1.0;
       if (activeLineIndex !== -1) {
         const dist = Math.abs(i - (activeLineIndex + (shift / lineHeight)));
-        // Active line is 100% scale (1.0). Surrounding lines shrink down dynamically to 0.7x scale.
-        lineScale = Math.max(0.7, 1.0 - dist * 0.12);
+        // Active line scales up to activeZoom (e.g. 1.0x to 2.5x). Surrounding lines taper smoothly to inactiveScale.
+        const t = Math.min(1.0, dist * 0.85);
+        lineScale = activeZoom * (1 - t) + inactiveScale * t;
       } else {
-        lineScale = 0.85;
+        lineScale = 1.0;
       }
       
       // Translate to scale from line center
