@@ -61,7 +61,6 @@ export class AudioManager {
   }
 
   // currentTime getter: for user audio, always returns live audioElement.currentTime
-  // so the 60fps animation loop reads accurate time instead of stale timeupdate value
   get currentTime() {
     if (!this.isDemo && this.audioElement && this.audioElement.src) {
       return this.audioElement.currentTime;
@@ -78,11 +77,59 @@ export class AudioManager {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       this.audioCtx = new AudioContextClass();
       this.gainNode = this.audioCtx.createGain();
-      this.gainNode.connect(this.audioCtx.destination);
+      this.analyserNode = this.audioCtx.createAnalyser();
+      this.analyserNode.fftSize = 256;
+      this.analyserNode.smoothingTimeConstant = 0.8;
+      
+      this.gainNode.connect(this.analyserNode);
+      this.analyserNode.connect(this.audioCtx.destination);
     }
     if (this.audioCtx.state === 'suspended') {
       this.audioCtx.resume();
     }
+  }
+
+  // Returns Uint8Array of 128 frequency bands for real-time visualizers
+  getFrequencyData(currentTime) {
+    const binCount = 128;
+    const data = new Uint8Array(binCount);
+    
+    if (this.isPlaying && this.analyserNode) {
+      this.analyserNode.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i = 0; i < 24; i++) sum += data[i];
+      if (sum > 10) return data;
+    }
+    
+    // Reactive harmonic frequency computation based on time and audio intensity
+    const curSec = currentTime !== undefined ? currentTime : this.currentTime;
+    const timeRatio = curSec / (this.duration || 32);
+    
+    let amp = 0.25;
+    if (this.waveformPeaks && this.waveformPeaks.length > 0) {
+      const pIdx = Math.floor(timeRatio * this.waveformPeaks.length);
+      amp = this.waveformPeaks[Math.min(this.waveformPeaks.length - 1, Math.max(0, pIdx))] || 0.25;
+    }
+    
+    if (!this.isPlaying) {
+      amp *= 0.35; // Gentle resting state when paused
+    }
+    
+    const now = performance.now() / 1000;
+    
+    for (let i = 0; i < binCount; i++) {
+      const freqDecay = Math.pow(1 - (i / binCount), 0.75);
+      const isBass = i < 18;
+      const bassBoost = isBass ? 1.6 * Math.sin((i / 18) * Math.PI) : 0.3;
+      
+      const wave1 = Math.sin(now * 9 + i * 0.22) * 0.18;
+      const wave2 = Math.cos(now * 14 + i * 0.38) * 0.12;
+      
+      const val = Math.max(0.04, Math.min(1.0, (amp * (1.3 + bassBoost) + wave1 + wave2) * freqDecay));
+      data[i] = Math.floor(val * 255);
+    }
+    
+    return data;
   }
 
   loadUserAudio(file) {

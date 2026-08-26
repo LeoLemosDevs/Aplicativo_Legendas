@@ -138,6 +138,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnLayerOrderDown = document.getElementById('btn-layer-order-down');
   const btnLayerDelete = document.getElementById('btn-layer-delete');
   
+  // Audio Spectrum Elements
+  const btnAddSpectrum = document.getElementById('btn-add-spectrum');
+  const spectrumControlsContainer = document.getElementById('spectrum-controls-container');
+  const selectSpectrumType = document.getElementById('select-spectrum-type');
+  const selectSpectrumPreset = document.getElementById('select-spectrum-preset');
+  const colorSpectrum1 = document.getElementById('color-spectrum-1');
+  const colorSpectrum2 = document.getElementById('color-spectrum-2');
+  const rangeSpectrumSensitivity = document.getElementById('range-spectrum-sensitivity');
+  const labelSpectrumSensitivity = document.getElementById('label-spectrum-sensitivity');
+  const rangeSpectrumRadius = document.getElementById('range-spectrum-radius');
+  const labelSpectrumRadius = document.getElementById('label-spectrum-radius');
+  const groupSpectrumRadius = document.getElementById('group-spectrum-radius');
+  const rangeSpectrumBars = document.getElementById('range-spectrum-bars');
+  const labelSpectrumBars = document.getElementById('label-spectrum-bars');
+  const rangeSpectrumBarWidth = document.getElementById('range-spectrum-bar-width');
+  const labelSpectrumBarWidth = document.getElementById('label-spectrum-bar-width');
+  const rangeSpectrumGlow = document.getElementById('range-spectrum-glow');
+  const labelSpectrumGlow = document.getElementById('label-spectrum-glow');
+  const groupSpectrumCenterImg = document.getElementById('group-spectrum-center-img');
+  const btnUploadSpectrumCenterImg = document.getElementById('btn-upload-spectrum-center-img');
+  const inputSpectrumCenterImg = document.getElementById('input-spectrum-center-img');
+  const btnRemoveSpectrumCenterImg = document.getElementById('btn-remove-spectrum-center-img');
+  
   // Timeline Elements
   const btnPlayPause = document.getElementById('btn-play-pause');
   const playIcon = document.getElementById('play-icon');
@@ -875,11 +898,13 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const info = document.createElement('div');
       info.className = 'layer-item-info';
-      info.innerHTML = `<i data-lucide="image"></i> <span>${layer.name}</span>`;
+      const icon = layer.type === 'spectrum' ? 'activity' : 'image';
+      info.innerHTML = `<i data-lucide="${icon}"></i> <span>${layer.name}</span>`;
       
       const controls = document.createElement('div');
       controls.className = 'layer-item-controls';
-      controls.innerHTML = `<span class="badge" style="font-size:0.6rem; border:0; background:rgba(255,255,255,0.06); color:#fff;">Camada ${i+1}</span>`;
+      const badgeText = layer.type === 'spectrum' ? 'Espectro' : `Camada ${i+1}`;
+      controls.innerHTML = `<span class="badge" style="font-size:0.6rem; border:0; background:rgba(255,255,255,0.06); color:#fff;">${badgeText}</span>`;
       
       div.appendChild(info);
       div.appendChild(controls);
@@ -902,10 +927,40 @@ document.addEventListener('DOMContentLoaded', () => {
       layerDetailTitle.textContent = selectedLayer.name;
       
       // Load current inputs values
-      rangeLayerOpacity.value = selectedLayer.opacity;
-      labelLayerOpacity.textContent = Math.round(selectedLayer.opacity * 100) + '%';
+      rangeLayerOpacity.value = selectedLayer.opacity !== undefined ? selectedLayer.opacity : 1.0;
+      labelLayerOpacity.textContent = Math.round((selectedLayer.opacity !== undefined ? selectedLayer.opacity : 1.0) * 100) + '%';
       numLayerStart.value = selectedLayer.start;
       numLayerEnd.value = selectedLayer.end;
+
+      if (selectedLayer.type === 'spectrum') {
+        spectrumControlsContainer.classList.remove('hidden');
+        selectSpectrumType.value = selectedLayer.spectrumType || 'circular-bars';
+        selectSpectrumPreset.value = selectedLayer.preset || 'cyberpunk';
+        colorSpectrum1.value = selectedLayer.color1 || '#06b6d4';
+        colorSpectrum2.value = selectedLayer.color2 || '#d946ef';
+        rangeSpectrumSensitivity.value = selectedLayer.sensitivity || 1.3;
+        labelSpectrumSensitivity.textContent = (selectedLayer.sensitivity || 1.3).toFixed(1) + 'x';
+        rangeSpectrumRadius.value = selectedLayer.radius || 120;
+        labelSpectrumRadius.textContent = (selectedLayer.radius || 120) + 'px';
+        rangeSpectrumBars.value = selectedLayer.barCount || 64;
+        labelSpectrumBars.textContent = selectedLayer.barCount || 64;
+        rangeSpectrumBarWidth.value = selectedLayer.barWidth || 5;
+        labelSpectrumBarWidth.textContent = (selectedLayer.barWidth || 5) + 'px';
+        rangeSpectrumGlow.value = selectedLayer.glow !== undefined ? selectedLayer.glow : 16;
+        labelSpectrumGlow.textContent = (selectedLayer.glow !== undefined ? selectedLayer.glow : 16) + 'px';
+
+        const isCircular = selectedLayer.spectrumType === 'circular-bars' || selectedLayer.spectrumType === 'circular-wave' || selectedLayer.spectrumType === 'radial-dots';
+        groupSpectrumRadius.style.display = isCircular ? 'block' : 'none';
+        groupSpectrumCenterImg.style.display = selectedLayer.spectrumType === 'circular-bars' ? 'block' : 'none';
+
+        if (selectedLayer.centerImage) {
+          btnRemoveSpectrumCenterImg.classList.remove('hidden');
+        } else {
+          btnRemoveSpectrumCenterImg.classList.add('hidden');
+        }
+      } else {
+        spectrumControlsContainer.classList.add('hidden');
+      }
     }
 
     renderTimelineLayers();
@@ -926,6 +981,194 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasEditor.selectedLayerId = null;
         canvasEditor.needsRedraw = true;
         updateLayersUI();
+      }
+    });
+  }
+
+  // Spectrum Layer Listeners
+  const SPECTRUM_PRESETS = {
+    'rainbow': { color1: '#10b981', color2: '#3b82f6' },
+    'fire-amber': { color1: '#ef4444', color2: '#22c55e' },
+    'gold-soundwave': { color1: '#f59e0b', color2: '#fef08a' },
+    'electric-blue': { color1: '#00f2fe', color2: '#4facfe' },
+    'cyberpunk': { color1: '#06b6d4', color2: '#d946ef' },
+    'trap-red': { color1: '#ef4444', color2: '#f97316' },
+    'vaporwave': { color1: '#ec4899', color2: '#eab308' }
+  };
+
+  if (btnAddSpectrum) {
+    btnAddSpectrum.addEventListener('click', () => {
+      canvasEditor.addSpectrumLayer();
+      updateLayersUI();
+    });
+  }
+
+  if (selectSpectrumType) {
+    selectSpectrumType.addEventListener('change', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.spectrumType = e.target.value;
+          canvasEditor.needsRedraw = true;
+          updateLayersUI();
+        }
+      }
+    });
+  }
+
+  if (selectSpectrumPreset) {
+    selectSpectrumPreset.addEventListener('change', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.preset = e.target.value;
+          const presetData = SPECTRUM_PRESETS[e.target.value];
+          if (presetData) {
+            layer.color1 = presetData.color1;
+            layer.color2 = presetData.color2;
+            colorSpectrum1.value = presetData.color1;
+            colorSpectrum2.value = presetData.color2;
+          }
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (colorSpectrum1) {
+    colorSpectrum1.addEventListener('input', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.color1 = e.target.value;
+          layer.preset = 'custom';
+          selectSpectrumPreset.value = 'custom';
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (colorSpectrum2) {
+    colorSpectrum2.addEventListener('input', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.color2 = e.target.value;
+          layer.preset = 'custom';
+          selectSpectrumPreset.value = 'custom';
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeSpectrumSensitivity) {
+    rangeSpectrumSensitivity.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      labelSpectrumSensitivity.textContent = val.toFixed(1) + 'x';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.sensitivity = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeSpectrumRadius) {
+    rangeSpectrumRadius.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      labelSpectrumRadius.textContent = val + 'px';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.radius = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeSpectrumBars) {
+    rangeSpectrumBars.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      labelSpectrumBars.textContent = val;
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.barCount = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeSpectrumBarWidth) {
+    rangeSpectrumBarWidth.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      labelSpectrumBarWidth.textContent = val + 'px';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.barWidth = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeSpectrumGlow) {
+    rangeSpectrumGlow.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      labelSpectrumGlow.textContent = val + 'px';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.glow = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (btnUploadSpectrumCenterImg) {
+    btnUploadSpectrumCenterImg.addEventListener('click', () => {
+      if (inputSpectrumCenterImg) inputSpectrumCenterImg.click();
+    });
+  }
+
+  if (inputSpectrumCenterImg) {
+    inputSpectrumCenterImg.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0 && canvasEditor.selectedLayerId) {
+        const file = e.target.files[0];
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.src = url;
+          img.onload = () => {
+            layer.centerImage = img;
+            layer.centerImageUrl = url;
+            canvasEditor.needsRedraw = true;
+            updateLayersUI();
+          };
+        }
+      }
+    });
+  }
+
+  if (btnRemoveSpectrumCenterImg) {
+    btnRemoveSpectrumCenterImg.addEventListener('click', () => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.centerImage = null;
+          layer.centerImageUrl = '';
+          canvasEditor.needsRedraw = true;
+          updateLayersUI();
+        }
       }
     });
   }
@@ -1183,7 +1426,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const widthPercent = Math.max(1.0, ((end - start) / duration) * 100);
 
       const block = document.createElement('div');
-      block.className = 'timeline-layer-block' + (canvasEditor.selectedLayerId === layer.id ? ' selected' : '');
+      const isSpectrum = layer.type === 'spectrum';
+      block.className = 'timeline-layer-block' + (isSpectrum ? ' spectrum-layer-block' : '') + (canvasEditor.selectedLayerId === layer.id ? ' selected' : '');
       block.style.left = `${leftPercent}%`;
       block.style.width = `${widthPercent}%`;
       block.setAttribute('data-layer-id', layer.id);
@@ -1196,7 +1440,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Text and icon
       const textSpan = document.createElement('span');
       textSpan.className = 'layer-block-text';
-      textSpan.innerHTML = `🖼️ ${layer.name}`;
+      const iconEmoji = isSpectrum ? '⚡' : '🖼️';
+      textSpan.innerHTML = `${iconEmoji} ${layer.name}`;
 
       // Right resize handle
       const handleRight = document.createElement('div');

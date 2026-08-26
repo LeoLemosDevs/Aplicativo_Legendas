@@ -154,6 +154,45 @@ export class CanvasEditor {
     };
   }
 
+  // Add Visualizer / Audio Spectrum Layer
+  addSpectrumLayer(customProps = {}) {
+    const layerStart = this.audioManager.trimStart !== undefined ? this.audioManager.trimStart : 0;
+    const layerEnd = this.audioManager.trimEnd !== undefined ? this.audioManager.trimEnd : (this.audioManager.duration || 32);
+    const size = 520;
+
+    const newLayer = {
+      id: 'spectrum_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7),
+      name: 'Espectro ' + (this.layers.filter(l => l.type === 'spectrum').length + 1),
+      type: 'spectrum',
+      spectrumType: customProps.spectrumType || 'circular-bars', // 'circular-bars' | 'circular-wave' | 'linear-bars' | 'wave-line' | 'radial-dots'
+      preset: customProps.preset || 'cyberpunk', // 'cyberpunk' | 'trap-red' | 'vaporwave' | 'electric-blue' | 'custom'
+      color1: customProps.color1 || '#06b6d4',
+      color2: customProps.color2 || '#d946ef',
+      isGradient: customProps.isGradient !== undefined ? customProps.isGradient : true,
+      glow: customProps.glow !== undefined ? customProps.glow : 16,
+      sensitivity: customProps.sensitivity || 1.3,
+      barCount: customProps.barCount || 64,
+      barWidth: customProps.barWidth || 5,
+      radius: customProps.radius || 120,
+      centerImage: null,
+      centerImageUrl: '',
+      x: (this.vWidth - size) / 2,
+      y: (this.vHeight - size) / 2 - 40,
+      width: size,
+      height: size,
+      opacity: 1.0,
+      start: layerStart,
+      end: layerEnd,
+      ...customProps
+    };
+
+    this.layers.push(newLayer);
+    this.selectedLayerId = newLayer.id;
+    this.needsRedraw = true;
+    if (this.onLayersUpdated) this.onLayersUpdated();
+    return newLayer;
+  }
+
   deleteLayer(id) {
     this.layers = this.layers.filter(l => l.id !== id);
     if (this.selectedLayerId === id) this.selectedLayerId = null;
@@ -426,13 +465,17 @@ export class CanvasEditor {
       this.drawCoverImage(ctx, this.background.element, this.vWidth, this.vHeight);
     }
     
-    // 2. Draw Foreground Image Layers
+    // 2. Draw Foreground Layers (Images and Spectrum Visualizers)
     this.layers.forEach(layer => {
-      if (time >= layer.start && time <= layer.end && layer.element) {
+      if (time >= layer.start && time <= layer.end) {
         ctx.save();
-        ctx.globalAlpha = layer.opacity;
-        
-        ctx.drawImage(layer.element, layer.x, layer.y, layer.width, layer.height);
+        ctx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1.0;
+
+        if (layer.type === 'spectrum') {
+          this.drawSpectrum(ctx, layer, time);
+        } else if (layer.element) {
+          ctx.drawImage(layer.element, layer.x, layer.y, layer.width, layer.height);
+        }
         
         // Draw editor borders & handles if selected on display canvas (only if it is the preview canvas, i.e., not during offline render)
         if (this.selectedLayerId === layer.id && targetCanvas === this.canvas) {
@@ -690,6 +733,365 @@ export class CanvasEditor {
       ctx.fillText(word.text, currentX, y);
       
       currentX += wWidth + customSpaceWidth;
+    }
+  }
+
+  // ==========================================
+  // AUDIO SPECTRUM / VISUALIZER ENGINE
+  // ==========================================
+
+  createSpectrumGradient(ctx, x1, y1, x2, y2, layer) {
+    if (!layer.isGradient) {
+      return layer.color1 || '#06b6d4';
+    }
+    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+    if (layer.preset === 'rainbow') {
+      grad.addColorStop(0.0, '#10b981'); // Green
+      grad.addColorStop(0.2, '#06b6d4'); // Cyan
+      grad.addColorStop(0.4, '#ec4899'); // Pink
+      grad.addColorStop(0.6, '#8b5cf6'); // Purple
+      grad.addColorStop(0.8, '#3b82f6'); // Blue
+      grad.addColorStop(1.0, '#10b981'); // Green
+    } else if (layer.preset === 'fire-amber') {
+      grad.addColorStop(0.0, '#ef4444'); // Red
+      grad.addColorStop(0.25, '#f97316'); // Orange
+      grad.addColorStop(0.5, '#eab308'); // Yellow
+      grad.addColorStop(0.75, '#84cc16'); // Lime
+      grad.addColorStop(1.0, '#22c55e'); // Green
+    } else if (layer.preset === 'gold-soundwave') {
+      grad.addColorStop(0.0, '#b45309');
+      grad.addColorStop(0.2, '#f59e0b');
+      grad.addColorStop(0.5, '#fef08a');
+      grad.addColorStop(0.8, '#f59e0b');
+      grad.addColorStop(1.0, '#b45309');
+    } else {
+      grad.addColorStop(0, layer.color1 || '#06b6d4');
+      grad.addColorStop(1, layer.color2 || '#d946ef');
+    }
+    return grad;
+  }
+
+  drawSpectrum(ctx, layer, time) {
+    const freqData = this.audioManager.getFrequencyData(time);
+    const type = layer.spectrumType || 'mirror-bars';
+
+    ctx.save();
+    
+    // Apply Glow effect
+    if (layer.glow && layer.glow > 0) {
+      ctx.shadowBlur = layer.glow;
+      ctx.shadowColor = layer.color1 || '#06b6d4';
+    }
+
+    switch (type) {
+      case 'mirror-bars': // Symmetrical Center Bars (Photos 2 & 5)
+        this.drawMirrorBars(ctx, layer, freqData);
+        break;
+      case 'linear-bars': // Bottom Equalizer Bars (Photos 1 & 3)
+        this.drawLinearBars(ctx, layer, freqData);
+        break;
+      case 'soundwave-dense': // Dense Studio Soundwave Field (Photo 4)
+        this.drawSoundwaveDense(ctx, layer, freqData);
+        break;
+      case 'circular-bars': // Trap Nation Circular with Bass Pump
+        this.drawCircularBars(ctx, layer, freqData);
+        break;
+      case 'circular-wave': // Radial Neon Wave
+        this.drawCircularWave(ctx, layer, freqData);
+        break;
+      case 'wave-line': // Fluid Line Wave
+        this.drawWaveLine(ctx, layer, freqData);
+        break;
+      case 'radial-dots': // Orbiting Pulsing Dots
+        this.drawRadialDots(ctx, layer, freqData);
+        break;
+      default:
+        this.drawMirrorBars(ctx, layer, freqData);
+    }
+
+    ctx.restore();
+  }
+
+  // MODEL 1: Symmetrical Center Waveform Bars (Matching Photos 2 & 5)
+  drawMirrorBars(ctx, layer, freqData) {
+    const barCount = layer.barCount || 56;
+    const spacing = Math.max(2, (layer.barWidth || 5) * 0.4);
+    const totalSpacing = (barCount - 1) * spacing;
+    const barWidth = Math.max(2, (layer.width - totalSpacing) / barCount);
+    const sensitivity = layer.sensitivity || 1.3;
+    const maxHeight = layer.height * 0.9;
+    const centerY = layer.y + layer.height / 2;
+
+    const grad = this.createSpectrumGradient(ctx, layer.x, centerY, layer.x + layer.width, centerY, layer);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = 'round';
+
+    for (let i = 0; i < barCount; i++) {
+      // Dynamic frequency curve
+      const norm = i / barCount;
+      const binIdx = Math.floor(Math.abs(Math.sin(norm * Math.PI)) * 50);
+      const val = (freqData[binIdx] || 0) / 255;
+      
+      const barH = Math.max(6, val * maxHeight * sensitivity);
+      const bx = layer.x + i * (barWidth + spacing) + barWidth / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(bx, centerY - barH / 2);
+      ctx.lineTo(bx, centerY + barH / 2);
+      ctx.stroke();
+    }
+  }
+
+  // MODEL 2: Modern Linear Equalizer Bars (Matching Photos 1 & 3)
+  drawLinearBars(ctx, layer, freqData) {
+    const barCount = layer.barCount || 52;
+    const spacing = 3;
+    const totalSpacing = (barCount - 1) * spacing;
+    const barWidth = Math.max(2, (layer.width - totalSpacing) / barCount);
+    const sensitivity = layer.sensitivity || 1.3;
+    const maxHeight = layer.height * 0.88;
+
+    const grad = this.createSpectrumGradient(ctx, layer.x, layer.y, layer.x + layer.width, layer.y, layer);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = 'round';
+
+    for (let i = 0; i < barCount; i++) {
+      const binNormalized = i / barCount;
+      const binIdx = Math.floor(binNormalized * 56);
+      const val = (freqData[binIdx] || 0) / 255;
+      
+      const barH = Math.max(8, val * maxHeight * sensitivity);
+      const bx = layer.x + i * (barWidth + spacing) + barWidth / 2;
+      const byBottom = layer.y + layer.height - 4;
+      const byTop = byBottom - barH;
+
+      ctx.beginPath();
+      ctx.moveTo(bx, byBottom);
+      ctx.lineTo(bx, byTop);
+      ctx.stroke();
+    }
+  }
+
+  // MODEL 3: Dense Studio Soundwave Field (Matching Photo 4 - Gold / Amber Field)
+  drawSoundwaveDense(ctx, layer, freqData) {
+    const lineCount = Math.max(80, (layer.barCount || 64) * 2);
+    const stepX = layer.width / (lineCount - 1);
+    const sensitivity = layer.sensitivity || 1.3;
+    const maxHeight = layer.height * 0.95;
+    const centerY = layer.y + layer.height / 2;
+
+    const grad = this.createSpectrumGradient(ctx, layer.x, centerY, layer.x + layer.width, centerY, layer);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = Math.max(1, (layer.barWidth || 5) * 0.35);
+    ctx.lineCap = 'butt';
+
+    const now = performance.now() / 1000;
+
+    for (let i = 0; i < lineCount; i++) {
+      const norm = i / lineCount;
+      const binIdx = Math.floor(Math.abs(Math.sin(norm * Math.PI)) * 48);
+      const val = (freqData[binIdx] || 0) / 255;
+      
+      // Organic high frequency studio jitter
+      const jitter = Math.sin(i * 13.5 + now * 12) * 0.15;
+      const barH = Math.max(4, (val * 0.85 + jitter) * maxHeight * sensitivity);
+      const bx = layer.x + i * stepX;
+
+      ctx.beginPath();
+      ctx.moveTo(bx, centerY - barH / 2);
+      ctx.lineTo(bx, centerY + barH / 2);
+      ctx.stroke();
+    }
+  }
+
+  // MODEL 4: Trap Nation Circular Bars with Bass Pump
+  drawCircularBars(ctx, layer, freqData) {
+    const cx = layer.x + layer.width / 2;
+    const cy = layer.y + layer.height / 2;
+    
+    const bass = ((freqData[0] || 0) + (freqData[1] || 0) + (freqData[2] || 0) + (freqData[3] || 0)) / (4 * 255);
+    const pumpRadius = (layer.radius || 120) * (1 + bass * 0.16);
+    
+    const barCount = layer.barCount || 64;
+    const barWidth = layer.barWidth || 5;
+    const sensitivity = layer.sensitivity || 1.3;
+    const maxBarLen = (layer.width / 2 - pumpRadius - 10);
+
+    const grad = this.createSpectrumGradient(ctx, cx - pumpRadius, cy - pumpRadius, cx + pumpRadius, cy + pumpRadius, layer);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = 'round';
+
+    for (let i = 0; i < barCount; i++) {
+      const angle = (i / barCount) * Math.PI * 2 - Math.PI / 2;
+      
+      const halfCount = barCount / 2;
+      const binNormalized = (i < halfCount ? i : (barCount - i)) / halfCount;
+      const binIdx = Math.floor(binNormalized * 50);
+      const val = (freqData[binIdx] || 0) / 255;
+      
+      const barHeight = Math.max(6, val * maxBarLen * sensitivity);
+      
+      const x1 = cx + Math.cos(angle) * pumpRadius;
+      const y1 = cy + Math.sin(angle) * pumpRadius;
+      const x2 = cx + Math.cos(angle) * (pumpRadius + barHeight);
+      const y2 = cy + Math.sin(angle) * (pumpRadius + barHeight);
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    // Draw Center Circle / Logo
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, pumpRadius - 4, 0, Math.PI * 2);
+    ctx.closePath();
+
+    if (layer.centerImage && layer.centerImage.complete) {
+      ctx.clip();
+      const imgSize = (pumpRadius - 4) * 2;
+      ctx.drawImage(layer.centerImage, cx - imgSize / 2, cy - imgSize / 2, imgSize, imgSize);
+    } else {
+      ctx.fillStyle = 'rgba(10, 15, 30, 0.85)';
+      ctx.fill();
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 3 + bass * 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, (pumpRadius - 4) * (0.6 + bass * 0.15), 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // MODEL 5: Continuous Radial Neon Wave
+  drawCircularWave(ctx, layer, freqData) {
+    const cx = layer.x + layer.width / 2;
+    const cy = layer.y + layer.height / 2;
+    
+    const bass = ((freqData[0] || 0) + (freqData[1] || 0) + (freqData[2] || 0)) / (3 * 255);
+    const baseRadius = (layer.radius || 120) * (1 + bass * 0.12);
+    
+    const pointCount = layer.barCount || 64;
+    const sensitivity = layer.sensitivity || 1.3;
+    const maxAmplitude = (layer.width / 2 - baseRadius - 10);
+
+    const grad = this.createSpectrumGradient(ctx, layer.x, layer.y, layer.x + layer.width, layer.y + layer.height, layer);
+    
+    ctx.beginPath();
+    for (let i = 0; i <= pointCount; i++) {
+      const idx = i % pointCount;
+      const angle = (idx / pointCount) * Math.PI * 2 - Math.PI / 2;
+      
+      const halfCount = pointCount / 2;
+      const binNormalized = (idx < halfCount ? idx : (pointCount - idx)) / halfCount;
+      const binIdx = Math.floor(binNormalized * 48);
+      const val = (freqData[binIdx] || 0) / 255;
+      
+      const r = baseRadius + val * maxAmplitude * sensitivity;
+      const px = cx + Math.cos(angle) * r;
+      const py = cy + Math.sin(angle) * r;
+
+      if (i === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.closePath();
+
+    ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
+    ctx.fill();
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = layer.barWidth || 4;
+    ctx.stroke();
+  }
+
+  // MODEL 6: Fluid Wave Line with Gradient Underneath
+  drawWaveLine(ctx, layer, freqData) {
+    const pointCount = layer.barCount || 48;
+    const stepX = layer.width / (pointCount - 1);
+    const sensitivity = layer.sensitivity || 1.3;
+    const centerY = layer.y + layer.height * 0.6;
+    const maxAmplitude = layer.height * 0.45;
+
+    const gradStroke = this.createSpectrumGradient(ctx, layer.x, layer.y, layer.x + layer.width, layer.y, layer);
+    const gradFill = ctx.createLinearGradient(layer.x, layer.y, layer.x, layer.y + layer.height);
+    gradFill.addColorStop(0, 'rgba(6, 182, 212, 0.35)');
+    gradFill.addColorStop(1, 'rgba(217, 70, 239, 0.0)');
+
+    ctx.beginPath();
+    ctx.moveTo(layer.x, layer.y + layer.height);
+
+    for (let i = 0; i < pointCount; i++) {
+      const binNormalized = i < pointCount / 2 ? (i / (pointCount / 2)) : ((pointCount - i) / (pointCount / 2));
+      const binIdx = Math.floor(binNormalized * 40);
+      const val = (freqData[binIdx] || 0) / 255;
+      
+      const px = layer.x + i * stepX;
+      const py = centerY - val * maxAmplitude * sensitivity;
+
+      if (i === 0) {
+        ctx.lineTo(px, py);
+      } else {
+        const prevX = layer.x + (i - 1) * stepX;
+        const prevBinNorm = (i - 1) < pointCount / 2 ? ((i - 1) / (pointCount / 2)) : ((pointCount - (i - 1)) / (pointCount / 2));
+        const prevVal = (freqData[Math.floor(prevBinNorm * 40)] || 0) / 255;
+        const prevY = centerY - prevVal * maxAmplitude * sensitivity;
+        
+        const cpX = (prevX + px) / 2;
+        ctx.quadraticCurveTo(prevX, prevY, cpX, (prevY + py) / 2);
+      }
+    }
+
+    ctx.lineTo(layer.x + layer.width, layer.y + layer.height);
+    ctx.closePath();
+
+    ctx.fillStyle = gradFill;
+    ctx.fill();
+
+    ctx.strokeStyle = gradStroke;
+    ctx.lineWidth = layer.barWidth || 4;
+    ctx.stroke();
+  }
+
+  // MODEL 7: Radial Orbiting Pulsing Dots
+  drawRadialDots(ctx, layer, freqData) {
+    const cx = layer.x + layer.width / 2;
+    const cy = layer.y + layer.height / 2;
+    
+    const bass = ((freqData[0] || 0) + (freqData[1] || 0) + (freqData[2] || 0)) / (3 * 255);
+    const baseRadius = (layer.radius || 120) * (1 + bass * 0.15);
+    
+    const dotCount = layer.barCount || 48;
+    const sensitivity = layer.sensitivity || 1.3;
+    const maxRadius = (layer.width / 2 - 10);
+
+    const grad = this.createSpectrumGradient(ctx, layer.x, layer.y, layer.x + layer.width, layer.y + layer.height, layer);
+    ctx.fillStyle = grad;
+
+    for (let i = 0; i < dotCount; i++) {
+      const angle = (i / dotCount) * Math.PI * 2;
+      const halfCount = dotCount / 2;
+      const binNormalized = (i < halfCount ? i : (dotCount - i)) / halfCount;
+      const binIdx = Math.floor(binNormalized * 45);
+      const val = (freqData[binIdx] || 0) / 255;
+      
+      const r = baseRadius + val * (maxRadius - baseRadius) * sensitivity;
+      const px = cx + Math.cos(angle) * r;
+      const py = cy + Math.sin(angle) * r;
+      const dotSize = Math.max(3, (layer.barWidth || 5) * (0.8 + val * 1.2));
+
+      ctx.beginPath();
+      ctx.arc(px, py, dotSize, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }

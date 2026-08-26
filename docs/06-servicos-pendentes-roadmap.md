@@ -33,7 +33,7 @@ Este documento cataloga os recursos planejados, melhorias arquiteturais e novas 
 
 | Prioridade | Recurso | Complexidade Estimada | Status |
 | :---: | :--- | :---: | :---: |
-| 🟡 Alta | Espectro de Áudio Circular / Visualizer | Média | 🎯 Planejado |
+| 🟢 Concluído | Espectro de Áudio Reativo (Visualizers) | Média | ✅ Entregue (v1.6) |
 | 🟡 Alta | Salvar / Carregar Projeto (.json) | Baixa | 🎯 Planejado |
 | 🟢 Média | Sincronização Palavra por Palavra (Word Fill) | Alta | 🎯 Planejado |
 | 🟢 Média | Upload de Fontes Locais (.ttf/.otf) | Baixa | 🎯 Planejado |

@@ -551,12 +551,24 @@
             <!-- TAB 4: LAYERS -->
             <div id="tab-layers" class="tab-pane">
               <h3>Camadas do Projeto</h3>
-              <p class="tab-desc">Controle a ordem de empilhamento, opacidade e tempo de aparecimento dos elementos visuais.</p>
+              <p class="tab-desc">Gerencie a ordem de empilhamento, opacidade, tempo e espectros visuais reativos à música.</p>
+
+              <!-- Add Spectrum Card -->
+              <div class="setting-section" style="margin-bottom: 14px; padding: 12px; background: rgba(6, 182, 212, 0.08); border: 1px dashed #06b6d4; border-radius: 12px; text-align: center;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;">
+                  <i data-lucide="activity" style="color: #06b6d4; width: 16px; height: 16px;"></i>
+                  <span style="font-size: 0.85rem; font-weight: 700; color: #06b6d4;">Visualizador Reativo à Música</span>
+                </div>
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px;">Insira um espectro sonoro estilo Trap Nation, onda neon ou equalizador.</p>
+                <button id="btn-add-spectrum" class="btn btn-primary full-width glow-effect" style="background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);">
+                  <i data-lucide="plus-circle"></i> Inserir Espectro de Áudio
+                </button>
+              </div>
               
               <div id="layers-empty-state" class="empty-state">
                 <i data-lucide="layers"></i>
-                <p>Nenhuma imagem extra adicionada.</p>
-                <p class="section-desc">Insira imagens na aba "Mídia" para gerenciar as camadas aqui.</p>
+                <p>Nenhuma camada adicional criada.</p>
+                <p class="section-desc">Insira um espectro acima ou imagens na aba "Mídia" para gerenciar aqui.</p>
               </div>
               
               <div id="layers-list-container" class="hidden">
@@ -568,9 +580,103 @@
                 <div id="selected-layer-settings-box" class="layer-detail-settings hidden">
                   <h4 id="layer-detail-title">Configurações da Camada</h4>
                   
+                  <!-- SPECTRUM CONTROLS (Only shown when layer.type === 'spectrum') -->
+                  <div id="spectrum-controls-container" class="hidden" style="margin-bottom: 14px; padding: 12px; background: rgba(0, 0, 0, 0.25); border-radius: 10px; border: 1px solid var(--border-glass);">
+                    <div class="form-group">
+                      <label for="select-spectrum-type">Estilo do Espectro:</label>
+                      <select id="select-spectrum-type">
+                        <option value="mirror-bars">📊 Onda Espelhada Central (Modelos 2 & 5)</option>
+                        <option value="linear-bars">📶 Equalizador Neon Vertical (Modelos 1 & 3)</option>
+                        <option value="soundwave-dense">🌊 Campo de Onda de Estúdio (Modelo 4)</option>
+                        <option value="circular-bars">💥 Trap Nation Circular (Com Graves)</option>
+                        <option value="circular-wave">✨ Onda Radial Neon (Circular)</option>
+                        <option value="wave-line">〰️ Linha de Onda Fluida (Wave Line)</option>
+                        <option value="radial-dots">✨ Anel de Partículas / Pontos</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="select-spectrum-preset">Preset de Cores & Efeitos:</label>
+                      <select id="select-spectrum-preset">
+                        <option value="rainbow">🌈 Multicolor Rainbow (Modelo 1)</option>
+                        <option value="fire-amber">🔥 Fire & Sun Gradient (Modelo 2)</option>
+                        <option value="gold-soundwave">✨ Dourado Studio Glow (Modelo 4)</option>
+                        <option value="electric-blue">🔵 Electric Blue Ocean (Modelo 5)</option>
+                        <option value="cyberpunk">🟣 Cyberpunk Neon (Ciano ➔ Roxo)</option>
+                        <option value="trap-red">🔴 Trap Nation Red (Vermelho ➔ Laranja)</option>
+                        <option value="vaporwave">🟡 Vaporwave Sunset (Rosa ➔ Dourado)</option>
+                        <option value="custom">🎨 Customizado (Cores Livres)</option>
+                      </select>
+                    </div>
+
+                    <div id="spectrum-color-pickers" class="form-group" style="display: flex; gap: 8px; margin-top: 8px;">
+                      <div style="flex: 1;">
+                        <label for="color-spectrum-1" style="font-size: 0.72rem;">Cor 1:</label>
+                        <input type="color" id="color-spectrum-1" value="#06b6d4" style="width: 100%; height: 32px; border-radius: 6px; border: 0; cursor: pointer;">
+                      </div>
+                      <div style="flex: 1;">
+                        <label for="color-spectrum-2" style="font-size: 0.72rem;">Cor 2 (Gradiente):</label>
+                        <input type="color" id="color-spectrum-2" value="#d946ef" style="width: 100%; height: 32px; border-radius: 6px; border: 0; cursor: pointer;">
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <div class="slider-label-row">
+                        <label for="range-spectrum-sensitivity">Sensibilidade da Batida:</label>
+                        <span id="label-spectrum-sensitivity">1.3x</span>
+                      </div>
+                      <input type="range" id="range-spectrum-sensitivity" min="0.4" max="3.0" step="0.1" value="1.3">
+                    </div>
+
+                    <div class="form-group" id="group-spectrum-radius">
+                      <div class="slider-label-row">
+                        <label for="range-spectrum-radius">Raio do Círculo:</label>
+                        <span id="label-spectrum-radius">120px</span>
+                      </div>
+                      <input type="range" id="range-spectrum-radius" min="40" max="220" step="5" value="120">
+                    </div>
+
+                    <div class="form-group">
+                      <div class="slider-label-row">
+                        <label for="range-spectrum-bars">Quantidade de Barras/Pontos:</label>
+                        <span id="label-spectrum-bars">64</span>
+                      </div>
+                      <input type="range" id="range-spectrum-bars" min="24" max="128" step="8" value="64">
+                    </div>
+
+                    <div class="form-group">
+                      <div class="slider-label-row">
+                        <label for="range-spectrum-bar-width">Espessura:</label>
+                        <span id="label-spectrum-bar-width">5px</span>
+                      </div>
+                      <input type="range" id="range-spectrum-bar-width" min="1" max="14" step="1" value="5">
+                    </div>
+
+                    <div class="form-group">
+                      <div class="slider-label-row">
+                        <label for="range-spectrum-glow">Brilho Glow Neon:</label>
+                        <span id="label-spectrum-glow">16px</span>
+                      </div>
+                      <input type="range" id="range-spectrum-glow" min="0" max="40" step="2" value="16">
+                    </div>
+
+                    <!-- Center Image Upload for Circular Spectrum -->
+                    <div id="group-spectrum-center-img" class="form-group" style="margin-top: 10px;">
+                      <label style="font-size: 0.75rem;">Logo / Imagem no Centro do Círculo:</label>
+                      <button id="btn-upload-spectrum-center-img" class="btn btn-secondary btn-small full-width" style="margin-top: 4px;">
+                        <i data-lucide="image"></i> Escolher Foto Central
+                      </button>
+                      <input type="file" id="input-spectrum-center-img" accept="image/*" style="display: none;">
+                      <button id="btn-remove-spectrum-center-img" class="btn btn-danger btn-small full-width hidden" style="margin-top: 4px; font-size: 0.7rem;">
+                        <i data-lucide="trash-2"></i> Remover Foto Central
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- General Layer Properties (Opacity, Start, End) -->
                   <div class="form-group">
                     <div class="slider-label-row">
-                      <label for="range-layer-opacity">Opacidade:</label>
+                      <label for="range-layer-opacity">Opacidade Geral:</label>
                       <span id="label-layer-opacity">100%</span>
                     </div>
                     <input type="range" id="range-layer-opacity" min="0" max="1" step="0.05" value="1">
@@ -597,7 +703,7 @@
                   </div>
                   
                   <button id="btn-layer-delete" class="btn btn-danger full-width">
-                    <i data-lucide="trash-2"></i> Excluir Elemento
+                    <i data-lucide="trash-2"></i> Excluir Camada
                   </button>
                 </div>
               </div>

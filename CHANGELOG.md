@@ -2,6 +2,29 @@
 
 Todas as alterações notáveis deste projeto estão documentadas neste arquivo.
 
+## [1.6.0] - 2026-08-26 (Versão 1.6 - Espectro de Áudio Reativo)
+### ⚡ Motor de Visualização Sonora & Espectros Reativos
+- **Modelos de Espectro Profissionais:**
+  - **Onda Espelhada Central (Modelos 2 & 5):** Barras verticais simétricas centralizadas com pontas arredondadas e gradiente de cor.
+  - **Equalizador Neon Vertical (Modelos 1 & 3):** Barras com subida suave e gradiente contínuo multicolorido.
+  - **Campo de Onda Densa de Estúdio (Modelo 4):** Linhas ultrafinas de alta resolução com brilho dourado (Studio Amber Glow).
+  - **Trap Nation Circular:** Anel com barras radiais reagindo com pulso de graves (*bass pump*) e suporte a logo central no círculo.
+  - **Onda Radial Neon:** Onda spline circular contínua com brilho difuso.
+  - **Linha de Onda Fluida & Anel de Partículas:** Visualizadores senoidais e orbitais adicionais.
+- **Presets de Cor & Efeitos:**
+  - `Multicolor Rainbow` (Verde ➔ Ciano ➔ Rosa ➔ Roxo ➔ Azul)
+  - `Fire & Sun Gradient` (Vermelho ➔ Laranja ➔ Amarelo ➔ Verde)
+  - `Dourado Studio Glow` (Amber / Gold Neon)
+  - `Electric Blue Ocean` (Ciano ➔ Azul Royal ➔ Índigo)
+  - `Cyberpunk Neon`, `Trap Nation Red`, `Vaporwave Sunset` e modo `Customizado`.
+- **Controle Total no Canvas e Timeline:**
+  - Arrastar para qualquer posição, redimensionar com alças interativas no canvas.
+  - Ajuste de sensibilidade da batida, raio interno, espessura, quantidade de barras e brilho neon (glow).
+  - Bloco visual dedicado na trilha de camadas da timeline para definir segundo de início e fim.
+  - Áudio reativo em tempo real tanto no preview quanto gravado quadro a quadro na exportação de vídeo MP4/WebM.
+
+---
+
 ## [1.5.0] - 2026-08-26 (Versão 1.5)
 ### 🎛️ Novas Funcionalidades e Edição Não-Linear
 - **Corte da Música (Audio Trim):** Marcadores arrastáveis na timeline e campos numéricos no painel de Mídia para cortar e usar trechos específicos de músicas longas (ex: 60s para Shorts).
