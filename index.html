@@ -154,6 +154,16 @@
           <span class="project-name" id="project-title-label">Mais Perto Quero Estar</span>
         </div>
         <div class="header-actions">
+          <button id="btn-save-project" class="btn btn-secondary" title="Salvar arquivo do projeto (.kproject)">
+            <i data-lucide="save"></i>
+            Salvar Projeto
+          </button>
+          <button id="btn-open-project" class="btn btn-secondary" title="Abrir arquivo do projeto (.kproject)">
+            <i data-lucide="folder-open"></i>
+            Abrir Projeto
+          </button>
+          <input type="file" id="input-open-project" accept=".kproject,.json" style="display: none;">
+
           <button id="btn-open-demo" class="btn btn-secondary" title="Carrega a música de demonstração clássica">
             <i data-lucide="refresh-cw"></i>
             Resetar Demo
@@ -174,6 +184,7 @@
             <button class="tab-btn active" data-tab="tab-media"><i data-lucide="file-video"></i> Mídia</button>
             <button class="tab-btn" data-tab="tab-lyrics"><i data-lucide="align-left"></i> Letras & Sinc</button>
             <button class="tab-btn" data-tab="tab-styles"><i data-lucide="palette"></i> Estilo</button>
+            <button class="tab-btn" data-tab="tab-effects"><i data-lucide="sparkles"></i> Efeitos</button>
             <button class="tab-btn" data-tab="tab-layers"><i data-lucide="layers"></i> Camadas</button>
           </div>
           
@@ -548,23 +559,113 @@
               </div>
             </div>
             
-            <!-- TAB 4: LAYERS -->
+            <!-- TAB 4: EFFECTS & FILTERS -->
+            <div id="tab-effects" class="tab-pane">
+              <h3>Filtros & Efeitos de Vídeo</h3>
+              <p class="tab-desc">Aplique filtros visuais cinematográficos, ajuste brilho, contraste e adicione vinheta escura.</p>
+
+              <!-- Filter Presets -->
+              <div class="setting-section">
+                <h4><i data-lucide="sparkles"></i> Presets de Efeitos Visuais</h4>
+                <div class="background-options-row" style="grid-template-columns: repeat(2, 1fr); gap: 6px;">
+                  <button type="button" class="bg-opt-btn active" data-effect-preset="none">✨ Normal / Padrão</button>
+                  <button type="button" class="bg-opt-btn" data-effect-preset="vintage">🎞️ Vintage Retrô</button>
+                  <button type="button" class="bg-opt-btn" data-effect-preset="cyberpunk">🟣 Cyberpunk Neon</button>
+                  <button type="button" class="bg-opt-btn" data-effect-preset="noir">🎬 Cinema Noir (P&B)</button>
+                  <button type="button" class="bg-opt-btn" data-effect-preset="warm">☀️ Golden Hour (Quente)</button>
+                  <button type="button" class="bg-opt-btn" data-effect-preset="scifi">🔵 Sci-Fi Cool</button>
+                  <button type="button" class="bg-opt-btn" data-effect-preset="vhs">📼 VHS 90s</button>
+                  <button type="button" class="bg-opt-btn" data-effect-preset="contrast">💥 Ultra Contraste</button>
+                </div>
+              </div>
+
+              <!-- Fine Adjustments -->
+              <div class="setting-section">
+                <h4><i data-lucide="sliders"></i> Ajuste Fino da Imagem</h4>
+
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-eff-brightness">☀️ Brilho:</label>
+                    <span id="label-eff-brightness">100%</span>
+                  </div>
+                  <input type="range" id="range-eff-brightness" min="50" max="180" step="2" value="100">
+                </div>
+
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-eff-contrast">🌓 Contraste:</label>
+                    <span id="label-eff-contrast">100%</span>
+                  </div>
+                  <input type="range" id="range-eff-contrast" min="50" max="200" step="2" value="100">
+                </div>
+
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-eff-saturation">🎨 Saturação de Cores:</label>
+                    <span id="label-eff-saturation">100%</span>
+                  </div>
+                  <input type="range" id="range-eff-saturation" min="0" max="200" step="2" value="100">
+                </div>
+
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-eff-vignette">🌑 Vinheta Escura (Bordas):</label>
+                    <span id="label-eff-vignette">0%</span>
+                  </div>
+                  <input type="range" id="range-eff-vignette" min="0" max="100" step="2" value="0">
+                </div>
+
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-eff-sepia">🍂 Tom Sépia / Envelhecido:</label>
+                    <span id="label-eff-sepia">0%</span>
+                  </div>
+                  <input type="range" id="range-eff-sepia" min="0" max="100" step="2" value="0">
+                </div>
+
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-eff-hue">🌈 Mudança de Matiz (Hue Rotate):</label>
+                    <span id="label-eff-hue">0°</span>
+                  </div>
+                  <input type="range" id="range-eff-hue" min="0" max="360" step="5" value="0">
+                </div>
+
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-eff-blur">🌫️ Desfoque Suave (Blur):</label>
+                    <span id="label-eff-blur">0px</span>
+                  </div>
+                  <input type="range" id="range-eff-blur" min="0" max="15" step="0.5" value="0">
+                </div>
+
+                <button id="btn-reset-effects" class="btn btn-secondary full-width" style="margin-top: 10px;">
+                  <i data-lucide="rotate-ccw"></i> Resetar Filtros
+                </button>
+              </div>
+            </div>
+
+            <!-- TAB 5: LAYERS -->
             <div id="tab-layers" class="tab-pane">
               <h3>Camadas do Projeto</h3>
-              <p class="tab-desc">Gerencie a ordem de empilhamento, opacidade, tempo, efeitos de Chroma Key e espectros de áudio.</p>
+              <p class="tab-desc">Gerencie a ordem de empilhamento, textos animados, chroma key e espectros de áudio.</p>
 
               <!-- Layer Add Actions Grid -->
               <div class="setting-section" style="margin-bottom: 14px; padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: 12px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                  <button id="btn-add-image-layer" class="btn btn-secondary btn-small full-width" style="font-size: 0.75rem; padding: 8px 4px;">
-                    <i data-lucide="image-plus"></i> Imagem / Foto
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                  <button id="btn-add-image-layer" class="btn btn-secondary btn-small full-width" style="font-size: 0.72rem; padding: 8px 2px;">
+                    <i data-lucide="image-plus"></i> Imagem
                   </button>
                   <input type="file" id="input-add-image-layer" accept="image/*" style="display: none;">
 
-                  <button id="btn-add-chroma-video-layer" class="btn btn-secondary btn-small full-width" style="font-size: 0.75rem; padding: 8px 4px; border-color: rgba(16, 185, 129, 0.4);">
-                    <i data-lucide="video"></i> Vídeo / Overlay
+                  <button id="btn-add-chroma-video-layer" class="btn btn-secondary btn-small full-width" style="font-size: 0.72rem; padding: 8px 2px; border-color: rgba(16, 185, 129, 0.4);">
+                    <i data-lucide="video"></i> Vídeo
                   </button>
                   <input type="file" id="input-add-chroma-video-layer" accept="video/mp4,video/webm,image/gif" style="display: none;">
+
+                  <button id="btn-add-text-layer" class="btn btn-secondary btn-small full-width" style="font-size: 0.72rem; padding: 8px 2px; border-color: rgba(59, 130, 246, 0.4);">
+                    <i data-lucide="type"></i> Texto
+                  </button>
                 </div>
 
                 <button id="btn-add-spectrum" class="btn btn-primary full-width glow-effect" style="background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%); font-size: 0.78rem;">
@@ -719,6 +820,126 @@
                           <span id="label-layer-chroma-smooth" style="font-size: 0.72rem;">10%</span>
                         </div>
                         <input type="range" id="range-layer-chroma-smooth" min="0.0" max="0.4" step="0.02" value="0.1">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- POSITION, SIZE & QUICK ALIGNMENT CONTROLS -->
+                  <div class="form-group" style="padding: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glass); border-radius: 8px; margin-bottom: 12px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #38bdf8; margin-bottom: 6px; display: block;">📐 Posição & Tamanho no Canvas:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                      <div>
+                        <label for="num-layer-x" style="font-size: 0.7rem;">Posição X (px):</label>
+                        <input type="number" id="num-layer-x" value="0" style="padding: 4px 6px; font-size: 0.8rem; width: 100%;">
+                      </div>
+                      <div>
+                        <label for="num-layer-y" style="font-size: 0.7rem;">Posição Y (px):</label>
+                        <input type="number" id="num-layer-y" value="0" style="padding: 4px 6px; font-size: 0.8rem; width: 100%;">
+                      </div>
+                      <div>
+                        <label for="num-layer-w" style="font-size: 0.7rem;">Largura (px):</label>
+                        <input type="number" id="num-layer-w" value="500" style="padding: 4px 6px; font-size: 0.8rem; width: 100%;">
+                      </div>
+                      <div>
+                        <label for="num-layer-h" style="font-size: 0.7rem;">Altura (px):</label>
+                        <input type="number" id="num-layer-h" value="200" style="padding: 4px 6px; font-size: 0.8rem; width: 100%;">
+                      </div>
+                    </div>
+                    <label style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Alinhamento Rápido:</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+                      <button type="button" id="btn-align-center-h" class="btn btn-secondary btn-small" style="font-size: 0.68rem; padding: 4px 2px;">Centro H</button>
+                      <button type="button" id="btn-align-center-v" class="btn btn-secondary btn-small" style="font-size: 0.68rem; padding: 4px 2px;">Centro V</button>
+                      <button type="button" id="btn-align-top" class="btn btn-secondary btn-small" style="font-size: 0.68rem; padding: 4px 2px;">Topo</button>
+                      <button type="button" id="btn-align-bottom" class="btn btn-secondary btn-small" style="font-size: 0.68rem; padding: 4px 2px;">Base</button>
+                      <button type="button" id="btn-align-left" class="btn btn-secondary btn-small" style="font-size: 0.68rem; padding: 4px 2px;">Esquerda</button>
+                      <button type="button" id="btn-align-right" class="btn btn-secondary btn-small" style="font-size: 0.68rem; padding: 4px 2px;">Direita</button>
+                    </div>
+                  </div>
+
+                  <!-- TEXT LAYER CONTROLS (Only shown when layer.type === 'text') -->
+                  <div id="text-layer-controls-container" class="hidden" style="margin-bottom: 14px; padding: 12px; background: rgba(59, 130, 246, 0.08); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <div class="form-group">
+                      <label for="textarea-text-layer-content">Conteúdo do Texto:</label>
+                      <textarea id="textarea-text-layer-content" rows="2" style="width: 100%; border-radius: 6px; padding: 6px; font-size: 0.85rem; resize: vertical;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="select-text-layer-font">Família da Fonte:</label>
+                      <select id="select-text-layer-font">
+                        <!-- Populated dynamically with Google Fonts -->
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <div class="slider-label-row">
+                        <label for="range-text-layer-font-size">Tamanho da Letra:</label>
+                        <span id="label-text-layer-font-size">64px</span>
+                      </div>
+                      <input type="range" id="range-text-layer-font-size" min="20" max="180" step="2" value="64">
+                    </div>
+
+                    <div class="form-group" style="display: flex; gap: 8px;">
+                      <div style="flex: 1;">
+                        <label for="color-text-layer" style="font-size: 0.72rem;">Cor Texto:</label>
+                        <input type="color" id="color-text-layer" value="#ffffff" style="width: 100%; height: 32px; border-radius: 6px; border: 0; cursor: pointer;">
+                      </div>
+                      <div style="flex: 1;">
+                        <label for="color-text-layer-bg" style="font-size: 0.72rem;">Fundo Caixa:</label>
+                        <input type="color" id="color-text-layer-bg" value="#000000" style="width: 100%; height: 32px; border-radius: 6px; border: 0; cursor: pointer;">
+                      </div>
+                      <div style="flex: 1;">
+                        <label for="color-text-layer-stroke" style="font-size: 0.72rem;">Contorno:</label>
+                        <input type="color" id="color-text-layer-stroke" value="#000000" style="width: 100%; height: 32px; border-radius: 6px; border: 0; cursor: pointer;">
+                      </div>
+                    </div>
+
+                    <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                      <button type="button" id="btn-text-layer-bold" class="btn btn-secondary btn-small" style="flex: 1; font-weight: bold;"><b>B</b></button>
+                      <button type="button" id="btn-text-layer-italic" class="btn btn-secondary btn-small" style="flex: 1; font-style: italic;"><i>I</i></button>
+                      <button type="button" id="btn-text-layer-upper" class="btn btn-secondary btn-small" style="flex: 1; font-size: 0.7rem;">AA</button>
+                    </div>
+
+                    <!-- In/Out Animations -->
+                    <div style="padding: 8px; background: rgba(0,0,0,0.25); border-radius: 8px;">
+                      <div class="form-group" style="margin-bottom: 6px;">
+                        <label for="select-text-layer-in-anim" style="font-size: 0.75rem; color: #10b981;">✨ Animação de Entrada:</label>
+                        <select id="select-text-layer-in-anim" style="font-size: 0.75rem; padding: 4px;">
+                          <option value="none">Nenhuma (Estático)</option>
+                          <option value="fade">Esmaecer (Fade In)</option>
+                          <option value="slide-up">Deslizar de Baixo para Cima (Slide Up)</option>
+                          <option value="slide-down">Deslizar de Cima para Baixo (Slide Down)</option>
+                          <option value="slide-left">Deslizar da Esquerda (Slide Left)</option>
+                          <option value="slide-right">Deslizar da Direita (Slide Right)</option>
+                          <option value="zoom-in">Zoom Explosivo (Zoom In)</option>
+                          <option value="bounce">Salto Elástico (Bounce)</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 8px;">
+                        <div class="slider-label-row">
+                          <label for="range-text-layer-in-dur" style="font-size: 0.7rem;">Tempo de Entrada:</label>
+                          <span id="label-text-layer-in-dur" style="font-size: 0.7rem;">0.5s</span>
+                        </div>
+                        <input type="range" id="range-text-layer-in-dur" min="0.1" max="2.0" step="0.1" value="0.5">
+                      </div>
+
+                      <div class="form-group" style="margin-bottom: 6px;">
+                        <label for="select-text-layer-out-anim" style="font-size: 0.75rem; color: #f43f5e;">✨ Animação de Saída:</label>
+                        <select id="select-text-layer-out-anim" style="font-size: 0.75rem; padding: 4px;">
+                          <option value="none">Nenhuma (Estático)</option>
+                          <option value="fade">Esmaecer (Fade Out)</option>
+                          <option value="slide-down">Deslizar para Baixo (Slide Down)</option>
+                          <option value="slide-up">Deslizar para Cima (Slide Up)</option>
+                          <option value="slide-left">Deslizar para Esquerda (Slide Left)</option>
+                          <option value="slide-right">Deslizar para Direita (Slide Right)</option>
+                          <option value="zoom-out">Zoom Reduzido (Zoom Out)</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <div class="slider-label-row">
+                          <label for="range-text-layer-out-dur" style="font-size: 0.7rem;">Tempo de Saída:</label>
+                          <span id="label-text-layer-out-dur" style="font-size: 0.7rem;">0.5s</span>
+                        </div>
+                        <input type="range" id="range-text-layer-out-dur" min="0.1" max="2.0" step="0.1" value="0.5">
                       </div>
                     </div>
                   </div>

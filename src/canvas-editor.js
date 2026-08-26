@@ -7,8 +7,20 @@ export class CanvasEditor {
     
     // Project States
     this.background = { type: 'color', color: '#111827', file: null, url: '', element: null };
-    this.layers = []; // Array of foreground images/elements
+    this.layers = []; // Array of foreground images/elements/videos/text/spectrum
     this.selectedLayerId = null;
+    
+    // Video Filters and Visual Effects
+    this.effects = {
+      preset: 'none',
+      brightness: 100, // 50 - 200%
+      contrast: 100,   // 50 - 200%
+      saturation: 100, // 0 - 200%
+      sepia: 0,        // 0 - 100%
+      hueRotate: 0,    // 0 - 360 deg
+      blur: 0,         // 0 - 20 px
+      vignette: 0      // 0 - 100%
+    };
     
     // Virtual resolution (1080x1920)
     this.vWidth = 1080;
@@ -48,6 +60,37 @@ export class CanvasEditor {
     
     // Mouse event listeners on display canvas
     this.initMouseEvents();
+  }
+
+  // Update visual effects
+  updateEffects(newEffects) {
+    this.effects = { ...this.effects, ...newEffects };
+    this.needsRedraw = true;
+  }
+
+  // Alignment helpers for selected layer
+  alignSelectedLayer(type) {
+    let layer = this.layers.find(l => l.id === this.selectedLayerId);
+    if (!layer && this.selectedLayerId === 'lyrics_layer') {
+      layer = this.lyricsContainer;
+    }
+    if (!layer) return;
+
+    if (type === 'center-h') {
+      layer.x = Math.round((this.vWidth - layer.width) / 2);
+    } else if (type === 'center-v') {
+      layer.y = Math.round((this.vHeight - layer.height) / 2);
+    } else if (type === 'top') {
+      layer.y = 40;
+    } else if (type === 'bottom') {
+      layer.y = this.vHeight - layer.height - 40;
+    } else if (type === 'left') {
+      layer.x = 40;
+    } else if (type === 'right') {
+      layer.x = this.vWidth - layer.width - 40;
+    }
+    this.needsRedraw = true;
+    if (this.onLayersUpdated) this.onLayersUpdated();
   }
 
   // Set style config parameters
@@ -231,6 +274,51 @@ export class CanvasEditor {
       y: (this.vHeight - size) / 2 - 40,
       width: size,
       height: size,
+      opacity: 1.0,
+      start: layerStart,
+      end: layerEnd,
+      ...customProps
+    };
+
+    this.layers.push(newLayer);
+    this.selectedLayerId = newLayer.id;
+    this.needsRedraw = true;
+    if (this.onLayersUpdated) this.onLayersUpdated();
+    return newLayer;
+  }
+
+  // Add Custom Formatted & Animated Text Layer
+  addTextLayer(customProps = {}) {
+    const layerStart = this.audioManager.trimStart !== undefined ? this.audioManager.trimStart : 0;
+    const layerEnd = this.audioManager.trimEnd !== undefined ? this.audioManager.trimEnd : (this.audioManager.duration || 32);
+    const w = 720;
+    const h = 200;
+
+    const newLayer = {
+      id: 'text_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7),
+      name: 'Texto ' + (this.layers.filter(l => l.type === 'text').length + 1),
+      type: 'text',
+      text: customProps.text || 'SEU TEXTO AQUI',
+      fontFamily: customProps.fontFamily || 'Montserrat',
+      fontSize: customProps.fontSize || 64,
+      color: customProps.color || '#ffffff',
+      backgroundColor: customProps.backgroundColor || 'transparent',
+      strokeColor: customProps.strokeColor || '#000000',
+      strokeWidth: customProps.strokeWidth !== undefined ? customProps.strokeWidth : 4,
+      shadowColor: customProps.shadowColor || 'rgba(0,0,0,0.8)',
+      shadowBlur: customProps.shadowBlur !== undefined ? customProps.shadowBlur : 8,
+      bold: customProps.bold !== undefined ? customProps.bold : true,
+      italic: customProps.italic !== undefined ? customProps.italic : false,
+      uppercase: customProps.uppercase !== undefined ? customProps.uppercase : false,
+      align: customProps.align || 'center',
+      inAnim: customProps.inAnim || 'slide-up', // 'none' | 'fade' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | 'zoom-in' | 'bounce'
+      inDuration: customProps.inDuration !== undefined ? customProps.inDuration : 0.5,
+      outAnim: customProps.outAnim || 'fade', // 'none' | 'fade' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | 'zoom-out'
+      outDuration: customProps.outDuration !== undefined ? customProps.outDuration : 0.5,
+      x: (this.vWidth - w) / 2,
+      y: (this.vHeight - h) / 3,
+      width: w,
+      height: h,
       opacity: 1.0,
       start: layerStart,
       end: layerEnd,
@@ -560,6 +648,177 @@ export class CanvasEditor {
     }
   }
 
+  // Vignette dark gradient overlay
+  drawVignette(ctx, width, height, intensityPercent) {
+    const alpha = Math.min(1.0, Math.max(0, intensityPercent / 100));
+    if (alpha <= 0) return;
+
+    ctx.save();
+    const cx = width / 2;
+    const cy = height / 2;
+    const radius = Math.sqrt(cx * cx + cy * cy);
+    
+    const grad = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(0.7, `rgba(0, 0, 0, ${alpha * 0.5})`);
+    grad.addColorStop(1.0, `rgba(0, 0, 0, ${alpha * 0.95})`);
+    
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
+  }
+
+  // Draw Animated Custom Text Layer
+  drawTextLayer(ctx, layer, time) {
+    const inDur = layer.inDuration || 0.5;
+    const outDur = layer.outDuration || 0.5;
+    const timeIn = time - layer.start;
+    const timeOut = layer.end - time;
+
+    let animAlpha = 1.0;
+    let animOffsetX = 0;
+    let animOffsetY = 0;
+    let animScale = 1.0;
+
+    // Entry animation
+    if (timeIn < inDur && layer.inAnim && layer.inAnim !== 'none') {
+      const p = Math.max(0, Math.min(1, timeIn / inDur));
+      const ease = Math.sin(p * Math.PI * 0.5); // Ease out quad
+      
+      switch (layer.inAnim) {
+        case 'fade':
+          animAlpha = p;
+          break;
+        case 'slide-up':
+          animOffsetY = (1 - ease) * 100;
+          animAlpha = p;
+          break;
+        case 'slide-down':
+          animOffsetY = -(1 - ease) * 100;
+          animAlpha = p;
+          break;
+        case 'slide-left':
+          animOffsetX = -(1 - ease) * 150;
+          animAlpha = p;
+          break;
+        case 'slide-right':
+          animOffsetX = (1 - ease) * 150;
+          animAlpha = p;
+          break;
+        case 'zoom-in':
+          animScale = 0.2 + 0.8 * ease;
+          animAlpha = p;
+          break;
+        case 'bounce':
+          animScale = Math.sin(p * Math.PI * 0.6) * 1.08;
+          animAlpha = p;
+          break;
+      }
+    } 
+    // Exit animation
+    else if (timeOut < outDur && layer.outAnim && layer.outAnim !== 'none') {
+      const p = Math.max(0, Math.min(1, timeOut / outDur));
+      const ease = Math.sin(p * Math.PI * 0.5);
+      
+      switch (layer.outAnim) {
+        case 'fade':
+          animAlpha = p;
+          break;
+        case 'slide-up':
+          animOffsetY = -(1 - ease) * 100;
+          animAlpha = p;
+          break;
+        case 'slide-down':
+          animOffsetY = (1 - ease) * 100;
+          animAlpha = p;
+          break;
+        case 'slide-left':
+          animOffsetX = -(1 - ease) * 150;
+          animAlpha = p;
+          break;
+        case 'slide-right':
+          animOffsetX = (1 - ease) * 150;
+          animAlpha = p;
+          break;
+        case 'zoom-out':
+          animScale = 0.2 + 0.8 * ease;
+          animAlpha = p;
+          break;
+      }
+    }
+
+    ctx.save();
+    ctx.globalAlpha = (layer.opacity !== undefined ? layer.opacity : 1.0) * animAlpha;
+
+    const centerX = layer.x + layer.width / 2 + animOffsetX;
+    const centerY = layer.y + layer.height / 2 + animOffsetY;
+
+    ctx.translate(centerX, centerY);
+    if (animScale !== 1.0) {
+      ctx.scale(animScale, animScale);
+    }
+    ctx.translate(-centerX, -centerY);
+
+    // Draw background box if specified
+    if (layer.backgroundColor && layer.backgroundColor !== 'transparent') {
+      ctx.fillStyle = layer.backgroundColor;
+      ctx.beginPath();
+      const r = 12;
+      const bx = layer.x + animOffsetX;
+      const by = layer.y + animOffsetY;
+      const bw = layer.width;
+      const bh = layer.height;
+      ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, r) : ctx.rect(bx, by, bw, bh);
+      ctx.fill();
+    }
+
+    // Font settings
+    const isBold = layer.bold ? 'bold ' : '';
+    const isItalic = layer.italic ? 'italic ' : '';
+    const fontSize = layer.fontSize || 64;
+    const fontFamily = layer.fontFamily || 'Montserrat';
+    ctx.font = `${isBold}${isItalic}${fontSize}px "${fontFamily}", sans-serif`;
+    ctx.textAlign = layer.align || 'center';
+    ctx.textBaseline = 'middle';
+
+    if (layer.shadowBlur && layer.shadowBlur > 0) {
+      ctx.shadowColor = layer.shadowColor || 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = layer.shadowBlur;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+    }
+
+    let textString = layer.text || '';
+    if (layer.uppercase) {
+      textString = textString.toUpperCase();
+    }
+
+    const lines = textString.split('\n');
+    const lineHeight = fontSize * 1.25;
+    const totalTextH = lines.length * lineHeight;
+    let startY = layer.y + animOffsetY + (layer.height - totalTextH) / 2 + lineHeight / 2;
+
+    let targetX = layer.x + animOffsetX + layer.width / 2;
+    if (layer.align === 'left') {
+      targetX = layer.x + animOffsetX + 20;
+    } else if (layer.align === 'right') {
+      targetX = layer.x + animOffsetX + layer.width - 20;
+    }
+
+    lines.forEach((lineText, idx) => {
+      const lineY = startY + idx * lineHeight;
+      if (layer.strokeWidth && layer.strokeWidth > 0) {
+        ctx.strokeStyle = layer.strokeColor || '#000000';
+        ctx.lineWidth = layer.strokeWidth;
+        ctx.strokeText(lineText, targetX, lineY);
+      }
+      ctx.fillStyle = layer.color || '#ffffff';
+      ctx.fillText(lineText, targetX, lineY);
+    });
+
+    ctx.restore();
+  }
+
   // Draw everything onto target canvas (either screen preview canvas or high-res export canvas)
   render(targetCanvas, time) {
     const ctx = targetCanvas.getContext('2d');
@@ -571,6 +830,22 @@ export class CanvasEditor {
     
     ctx.save();
     ctx.scale(scale, scale);
+
+    // Apply Global Filter Effects
+    const eff = this.effects || {};
+    const filters = [];
+    if (eff.brightness !== undefined && eff.brightness !== 100) filters.push(`brightness(${eff.brightness}%)`);
+    if (eff.contrast !== undefined && eff.contrast !== 100) filters.push(`contrast(${eff.contrast}%)`);
+    if (eff.saturation !== undefined && eff.saturation !== 100) filters.push(`saturate(${eff.saturation}%)`);
+    if (eff.sepia && eff.sepia > 0) filters.push(`sepia(${eff.sepia}%)`);
+    if (eff.hueRotate && eff.hueRotate > 0) filters.push(`hue-rotate(${eff.hueRotate}deg)`);
+    if (eff.blur && eff.blur > 0) filters.push(`blur(${eff.blur}px)`);
+
+    if (filters.length > 0) {
+      ctx.filter = filters.join(' ');
+    } else {
+      ctx.filter = 'none';
+    }
     
     // 1. Draw Background
     if (this.background.type === 'color') {
@@ -580,7 +855,7 @@ export class CanvasEditor {
       this.drawCoverImage(ctx, this.background.element, this.vWidth, this.vHeight);
     }
     
-    // 2. Draw Foreground Layers (Images, Overlay Videos, and Spectrum Visualizers)
+    // 2. Draw Foreground Layers (Images, Overlay Videos, Text, and Spectrum Visualizers)
     this.layers.forEach(layer => {
       if (time >= layer.start && time <= layer.end) {
         ctx.save();
@@ -588,6 +863,8 @@ export class CanvasEditor {
 
         if (layer.type === 'spectrum') {
           this.drawSpectrum(ctx, layer, time);
+        } else if (layer.type === 'text') {
+          this.drawTextLayer(ctx, layer, time);
         } else if (layer.element) {
           // Sync video time if layer is video
           if (layer.type === 'video') {
@@ -611,18 +888,32 @@ export class CanvasEditor {
           }
         }
         
-        // Draw editor borders & handles if selected on display canvas (only if it is the preview canvas, i.e., not during offline render)
-        if (this.selectedLayerId === layer.id && targetCanvas === this.canvas) {
-          ctx.restore(); // momentarily exit layer globalAlpha to draw handles brightly
+        ctx.restore();
+      }
+    });
+    
+    // 3. Draw Styled Karaoke Lyrics
+    this.drawLyrics(ctx, time);
+
+    // Reset filters before vignette and UI handles
+    ctx.filter = 'none';
+
+    // 4. Draw Vignette effect if active
+    if (eff.vignette && eff.vignette > 0) {
+      this.drawVignette(ctx, this.vWidth, this.vHeight, eff.vignette);
+    }
+    
+    // 5. Draw selection bounding box and resize handles (only on preview screen)
+    if (targetCanvas === this.canvas) {
+      this.layers.forEach(layer => {
+        if (this.selectedLayerId === layer.id && time >= layer.start && time <= layer.end) {
           ctx.save();
-          
-          ctx.strokeStyle = '#3b82f6'; // Bright blue selection box
+          ctx.strokeStyle = '#3b82f6';
           ctx.lineWidth = 4;
           ctx.setLineDash([8, 8]);
           ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
-          ctx.setLineDash([]); // clear dash
+          ctx.setLineDash([]);
           
-          // Draw circular handle dots
           ctx.fillStyle = '#ffffff';
           ctx.strokeStyle = '#2563eb';
           ctx.lineWidth = 3;
@@ -641,14 +932,10 @@ export class CanvasEditor {
             ctx.fill();
             ctx.stroke();
           });
+          ctx.restore();
         }
-        
-        ctx.restore();
-      }
-    });
-    
-    // 3. Draw Styled Karaoke Lyrics
-    this.drawLyrics(ctx, time);
+      });
+    }
     
     // 4. Draw selection bounding box for lyrics container if selected (only on preview screen)
     if (this.selectedLayerId === 'lyrics_layer' && targetCanvas === this.canvas) {
@@ -1283,5 +1570,89 @@ export class CanvasEditor {
       ctx.arc(px, py, dotSize, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+
+  // Get project serializable state
+  getProjectState() {
+    return {
+      vWidth: this.vWidth,
+      vHeight: this.vHeight,
+      background: {
+        type: this.background.type,
+        color: this.background.color,
+        url: this.background.url || ''
+      },
+      effects: { ...this.effects },
+      lyricsStyle: { ...this.lyricsStyle },
+      lyricsContainer: { ...this.lyricsContainer },
+      layers: this.layers.map(layer => {
+        // Strip DOM elements
+        const { element, centerImage, ...serializable } = layer;
+        return serializable;
+      })
+    };
+  }
+
+  // Load project serializable state
+  loadProjectState(state) {
+    if (!state) return;
+    if (state.vWidth && state.vHeight) {
+      this.vWidth = state.vWidth;
+      this.vHeight = state.vHeight;
+    }
+    if (state.background) {
+      this.background.type = state.background.type || 'color';
+      this.background.color = state.background.color || '#111827';
+      this.background.url = state.background.url || '';
+      if (this.background.url) {
+        const img = new Image();
+        img.src = this.background.url;
+        img.onload = () => {
+          this.background.element = img;
+          this.needsRedraw = true;
+        };
+      }
+    }
+    if (state.effects) {
+      this.effects = { ...this.effects, ...state.effects };
+    }
+    if (state.lyricsStyle) {
+      this.lyricsStyle = { ...this.lyricsStyle, ...state.lyricsStyle };
+    }
+    if (state.lyricsContainer) {
+      this.lyricsContainer = { ...this.lyricsContainer, ...state.lyricsContainer };
+    }
+    if (Array.isArray(state.layers)) {
+      this.layers = state.layers.map(l => {
+        const layerObj = { ...l };
+        if (layerObj.type === 'image' && layerObj.url) {
+          const img = new Image();
+          img.src = layerObj.url;
+          img.onload = () => {
+            layerObj.element = img;
+            this.needsRedraw = true;
+          };
+        } else if (layerObj.type === 'video' && layerObj.url) {
+          const vid = document.createElement('video');
+          vid.src = layerObj.url;
+          vid.muted = true;
+          vid.loop = true;
+          vid.playsInline = true;
+          vid.load();
+          layerObj.element = vid;
+        } else if (layerObj.type === 'spectrum' && layerObj.centerImageUrl) {
+          const cImg = new Image();
+          cImg.src = layerObj.centerImageUrl;
+          cImg.onload = () => {
+            layerObj.centerImage = cImg;
+            this.needsRedraw = true;
+          };
+        }
+        return layerObj;
+      });
+    }
+    this.selectedLayerId = null;
+    this.needsRedraw = true;
+    if (this.onLayersUpdated) this.onLayersUpdated();
   }
 }

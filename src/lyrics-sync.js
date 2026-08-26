@@ -205,4 +205,73 @@ export class LyricsSync {
       wordIndex: activeLineIndex
     };
   }
+
+  // Export synchronized phrases to standard SRT format
+  exportSRT() {
+    let srt = "";
+    let count = 1;
+    this.words.forEach(word => {
+      if (word.start !== null) {
+        const start = word.start;
+        const end = word.end !== null ? word.end : (start + 3.0);
+        const startStr = this.formatSRTTime(start);
+        const endStr = this.formatSRTTime(end);
+        srt += `${count}\n${startStr} --> ${endStr}\n${word.text}\n\n`;
+        count++;
+      }
+    });
+    return srt.trim();
+  }
+
+  formatSRTTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 1000);
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+  }
+
+  parseSRTTime(str) {
+    if (!str) return 0;
+    const parts = str.trim().split(':');
+    if (parts.length < 3) return 0;
+    const hrs = parseFloat(parts[0]) || 0;
+    const mins = parseFloat(parts[1]) || 0;
+    const secMs = parts[2].replace(',', '.');
+    const secs = parseFloat(secMs) || 0;
+    return hrs * 3600 + mins * 60 + secs;
+  }
+
+  // Import SRT formatted subtitles into word/phrase sync array
+  importSRT(srtContent) {
+    if (!srtContent) return [];
+    this.words = [];
+    const blocks = srtContent.trim().split(/\n\s*\n/);
+    let lineIdx = 0;
+    blocks.forEach(block => {
+      const lines = block.trim().split('\n');
+      if (lines.length >= 2) {
+        let timeLine = lines[1];
+        let textLine = lines.slice(2).join('\n');
+        if (!timeLine.includes('-->') && lines[0].includes('-->')) {
+          timeLine = lines[0];
+          textLine = lines.slice(1).join('\n');
+        }
+        if (timeLine && timeLine.includes('-->')) {
+          const [startStr, endStr] = timeLine.split('-->');
+          const start = this.parseSRTTime(startStr);
+          const end = this.parseSRTTime(endStr);
+          this.words.push({
+            text: textLine.trim(),
+            start,
+            end,
+            lineIndex: lineIdx++
+          });
+        }
+      }
+    });
+    this.currentSyncWordIndex = 0;
+    this.isSyncing = false;
+    return this.words;
+  }
 }

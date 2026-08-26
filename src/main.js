@@ -48,6 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportAudioBitrate = document.getElementById('export-audio-bitrate');
   const chkExportHw = document.getElementById('chk-export-hw');
   
+  // Project Elements
+  const btnSaveProject = document.getElementById('btn-save-project');
+  const btnOpenProject = document.getElementById('btn-open-project');
+  const inputOpenProject = document.getElementById('input-open-project');
   const btnOpenDemo = document.getElementById('btn-open-demo');
   const projectTypeBadge = document.getElementById('project-type-badge');
   const projectTitleLabel = document.getElementById('project-title-label');
@@ -143,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputAddImageLayer = document.getElementById('input-add-image-layer');
   const btnAddChromaVideoLayer = document.getElementById('btn-add-chroma-video-layer');
   const inputAddChromaVideoLayer = document.getElementById('input-add-chroma-video-layer');
+  const btnAddTextLayer = document.getElementById('btn-add-text-layer');
   const layerChromaControls = document.getElementById('layer-chroma-controls');
   const chkLayerChroma = document.getElementById('chk-layer-chroma');
   const layerChromaOptions = document.getElementById('layer-chroma-options');
@@ -153,6 +158,55 @@ document.addEventListener('DOMContentLoaded', () => {
   const labelLayerChromaTol = document.getElementById('label-layer-chroma-tol');
   const rangeLayerChromaSmooth = document.getElementById('range-layer-chroma-smooth');
   const labelLayerChromaSmooth = document.getElementById('label-layer-chroma-smooth');
+
+  // Layer Numeric Position & Alignment
+  const numLayerX = document.getElementById('num-layer-x');
+  const numLayerY = document.getElementById('num-layer-y');
+  const numLayerW = document.getElementById('num-layer-w');
+  const numLayerH = document.getElementById('num-layer-h');
+  const btnAlignCenterH = document.getElementById('btn-align-center-h');
+  const btnAlignCenterV = document.getElementById('btn-align-center-v');
+  const btnAlignTop = document.getElementById('btn-align-top');
+  const btnAlignBottom = document.getElementById('btn-align-bottom');
+  const btnAlignLeft = document.getElementById('btn-align-left');
+  const btnAlignRight = document.getElementById('btn-align-right');
+
+  // Text Layer Controls
+  const textLayerControlsContainer = document.getElementById('text-layer-controls-container');
+  const textareaTextLayerContent = document.getElementById('textarea-text-layer-content');
+  const selectTextLayerFont = document.getElementById('select-text-layer-font');
+  const rangeTextLayerFontSize = document.getElementById('range-text-layer-font-size');
+  const labelTextLayerFontSize = document.getElementById('label-text-layer-font-size');
+  const colorTextLayer = document.getElementById('color-text-layer');
+  const colorTextLayerBg = document.getElementById('color-text-layer-bg');
+  const colorTextLayerStroke = document.getElementById('color-text-layer-stroke');
+  const btnTextLayerBold = document.getElementById('btn-text-layer-bold');
+  const btnTextLayerItalic = document.getElementById('btn-text-layer-italic');
+  const btnTextLayerUpper = document.getElementById('btn-text-layer-upper');
+  const selectTextLayerInAnim = document.getElementById('select-text-layer-in-anim');
+  const rangeTextLayerInDur = document.getElementById('range-text-layer-in-dur');
+  const labelTextLayerInDur = document.getElementById('label-text-layer-in-dur');
+  const selectTextLayerOutAnim = document.getElementById('select-text-layer-out-anim');
+  const rangeTextLayerOutDur = document.getElementById('range-text-layer-out-dur');
+  const labelTextLayerOutDur = document.getElementById('label-text-layer-out-dur');
+
+  // Effects & Video Filters Elements
+  const effectPresetButtons = document.querySelectorAll('[data-effect-preset]');
+  const rangeEffBrightness = document.getElementById('range-eff-brightness');
+  const labelEffBrightness = document.getElementById('label-eff-brightness');
+  const rangeEffContrast = document.getElementById('range-eff-contrast');
+  const labelEffContrast = document.getElementById('label-eff-contrast');
+  const rangeEffSaturation = document.getElementById('range-eff-saturation');
+  const labelEffSaturation = document.getElementById('label-eff-saturation');
+  const rangeEffVignette = document.getElementById('range-eff-vignette');
+  const labelEffVignette = document.getElementById('label-eff-vignette');
+  const rangeEffSepia = document.getElementById('range-eff-sepia');
+  const labelEffSepia = document.getElementById('label-eff-sepia');
+  const rangeEffHue = document.getElementById('range-eff-hue');
+  const labelEffHue = document.getElementById('label-eff-hue');
+  const rangeEffBlur = document.getElementById('range-eff-blur');
+  const labelEffBlur = document.getElementById('label-eff-blur');
+  const btnResetEffects = document.getElementById('btn-reset-effects');
   
   // Audio Spectrum Elements
   const btnAddSpectrum = document.getElementById('btn-add-spectrum');
@@ -950,7 +1004,44 @@ document.addEventListener('DOMContentLoaded', () => {
       numLayerStart.value = selectedLayer.start;
       numLayerEnd.value = selectedLayer.end;
 
-      if (selectedLayer.type === 'spectrum') {
+      // Position and size inputs
+      if (numLayerX) numLayerX.value = Math.round(selectedLayer.x);
+      if (numLayerY) numLayerY.value = Math.round(selectedLayer.y);
+      if (numLayerW) numLayerW.value = Math.round(selectedLayer.width);
+      if (numLayerH) numLayerH.value = Math.round(selectedLayer.height);
+
+      if (selectedLayer.type === 'text') {
+        if (textLayerControlsContainer) textLayerControlsContainer.classList.remove('hidden');
+        if (spectrumControlsContainer) spectrumControlsContainer.classList.add('hidden');
+        if (layerChromaControls) layerChromaControls.classList.add('hidden');
+
+        if (textareaTextLayerContent) textareaTextLayerContent.value = selectedLayer.text || '';
+        if (selectTextLayerFont) selectTextLayerFont.value = selectedLayer.fontFamily || 'Montserrat';
+        if (rangeTextLayerFontSize) {
+          rangeTextLayerFontSize.value = selectedLayer.fontSize || 64;
+          if (labelTextLayerFontSize) labelTextLayerFontSize.textContent = (selectedLayer.fontSize || 64) + 'px';
+        }
+        if (colorTextLayer) colorTextLayer.value = selectedLayer.color || '#ffffff';
+        if (colorTextLayerBg) colorTextLayerBg.value = selectedLayer.backgroundColor || '#000000';
+        if (colorTextLayerStroke) colorTextLayerStroke.value = selectedLayer.strokeColor || '#000000';
+        if (btnTextLayerBold) btnTextLayerBold.classList.toggle('active', !!selectedLayer.bold);
+        if (btnTextLayerItalic) btnTextLayerItalic.classList.toggle('active', !!selectedLayer.italic);
+        if (btnTextLayerUpper) btnTextLayerUpper.classList.toggle('active', !!selectedLayer.uppercase);
+
+        if (selectTextLayerInAnim) selectTextLayerInAnim.value = selectedLayer.inAnim || 'slide-up';
+        if (rangeTextLayerInDur) {
+          const inD = selectedLayer.inDuration !== undefined ? selectedLayer.inDuration : 0.5;
+          rangeTextLayerInDur.value = inD;
+          if (labelTextLayerInDur) labelTextLayerInDur.textContent = inD + 's';
+        }
+        if (selectTextLayerOutAnim) selectTextLayerOutAnim.value = selectedLayer.outAnim || 'fade';
+        if (rangeTextLayerOutDur) {
+          const outD = selectedLayer.outDuration !== undefined ? selectedLayer.outDuration : 0.5;
+          rangeTextLayerOutDur.value = outD;
+          if (labelTextLayerOutDur) labelTextLayerOutDur.textContent = outD + 's';
+        }
+      } else if (selectedLayer.type === 'spectrum') {
+        if (textLayerControlsContainer) textLayerControlsContainer.classList.add('hidden');
         spectrumControlsContainer.classList.remove('hidden');
         selectSpectrumType.value = selectedLayer.spectrumType || 'circular-bars';
         selectSpectrumPreset.value = selectedLayer.preset || 'cyberpunk';
@@ -980,6 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (layerChromaControls) layerChromaControls.classList.add('hidden');
       } else {
+        if (textLayerControlsContainer) textLayerControlsContainer.classList.add('hidden');
         spectrumControlsContainer.classList.add('hidden');
         
         // Show Chroma Key settings for image & video layers
@@ -1352,6 +1444,466 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Text Layer Font Selector Population
+  const TEXT_LAYER_FONTS = [
+    'Montserrat', 'Poppins', 'Roboto', 'Bebas Neue', 'Outfit', 
+    'Inter', 'Cinzel', 'Caveat', 'Playfair Display', 'Oswald', 'Anton', 'Pacifico'
+  ];
+  if (selectTextLayerFont) {
+    selectTextLayerFont.innerHTML = '';
+    TEXT_LAYER_FONTS.forEach(font => {
+      const opt = document.createElement('option');
+      opt.value = font;
+      opt.textContent = font;
+      selectTextLayerFont.appendChild(opt);
+    });
+  }
+
+  // Add Text Layer Button
+  if (btnAddTextLayer) {
+    btnAddTextLayer.addEventListener('click', () => {
+      canvasEditor.addTextLayer();
+      updateLayersUI();
+      const tabLayersBtn = document.querySelector('[data-tab="tab-layers"]');
+      if (tabLayersBtn) tabLayersBtn.click();
+    });
+  }
+
+  // Text Layer Property Listeners
+  if (textareaTextLayerContent) {
+    textareaTextLayerContent.addEventListener('input', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.text = e.target.value;
+          layer.name = (e.target.value.trim().substring(0, 16) || 'Texto') + '...';
+          canvasEditor.needsRedraw = true;
+          renderTimelineLayers();
+        }
+      }
+    });
+  }
+
+  if (selectTextLayerFont) {
+    selectTextLayerFont.addEventListener('change', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.fontFamily = e.target.value;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeTextLayerFontSize) {
+    rangeTextLayerFontSize.addEventListener('input', (e) => {
+      const size = parseInt(e.target.value);
+      if (labelTextLayerFontSize) labelTextLayerFontSize.textContent = size + 'px';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.fontSize = size;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (colorTextLayer) {
+    colorTextLayer.addEventListener('input', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.color = e.target.value;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (colorTextLayerBg) {
+    colorTextLayerBg.addEventListener('input', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.backgroundColor = e.target.value;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (colorTextLayerStroke) {
+    colorTextLayerStroke.addEventListener('input', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.strokeColor = e.target.value;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (btnTextLayerBold) {
+    btnTextLayerBold.addEventListener('click', () => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.bold = !layer.bold;
+          btnTextLayerBold.classList.toggle('active', !!layer.bold);
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (btnTextLayerItalic) {
+    btnTextLayerItalic.addEventListener('click', () => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.italic = !layer.italic;
+          btnTextLayerItalic.classList.toggle('active', !!layer.italic);
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (btnTextLayerUpper) {
+    btnTextLayerUpper.addEventListener('click', () => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.uppercase = !layer.uppercase;
+          btnTextLayerUpper.classList.toggle('active', !!layer.uppercase);
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (selectTextLayerInAnim) {
+    selectTextLayerInAnim.addEventListener('change', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.inAnim = e.target.value;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeTextLayerInDur) {
+    rangeTextLayerInDur.addEventListener('input', (e) => {
+      const dur = parseFloat(e.target.value);
+      if (labelTextLayerInDur) labelTextLayerInDur.textContent = dur + 's';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.inDuration = dur;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (selectTextLayerOutAnim) {
+    selectTextLayerOutAnim.addEventListener('change', (e) => {
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.outAnim = e.target.value;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeTextLayerOutDur) {
+    rangeTextLayerOutDur.addEventListener('input', (e) => {
+      const dur = parseFloat(e.target.value);
+      if (labelTextLayerOutDur) labelTextLayerOutDur.textContent = dur + 's';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'text') {
+          layer.outDuration = dur;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  // Numeric Position and Size Listeners
+  if (numLayerX) {
+    numLayerX.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value) || 0;
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer) {
+          layer.x = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (numLayerY) {
+    numLayerY.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value) || 0;
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer) {
+          layer.y = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (numLayerW) {
+    numLayerW.addEventListener('input', (e) => {
+      const val = Math.max(20, parseFloat(e.target.value) || 20);
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer) {
+          layer.width = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (numLayerH) {
+    numLayerH.addEventListener('input', (e) => {
+      const val = Math.max(20, parseFloat(e.target.value) || 20);
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer) {
+          layer.height = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  // Layer Alignment Buttons
+  if (btnAlignCenterH) btnAlignCenterH.addEventListener('click', () => canvasEditor.alignSelectedLayer('center-h'));
+  if (btnAlignCenterV) btnAlignCenterV.addEventListener('click', () => canvasEditor.alignSelectedLayer('center-v'));
+  if (btnAlignTop) btnAlignTop.addEventListener('click', () => canvasEditor.alignSelectedLayer('top'));
+  if (btnAlignBottom) btnAlignBottom.addEventListener('click', () => canvasEditor.alignSelectedLayer('bottom'));
+  if (btnAlignLeft) btnAlignLeft.addEventListener('click', () => canvasEditor.alignSelectedLayer('left'));
+  if (btnAlignRight) btnAlignRight.addEventListener('click', () => canvasEditor.alignSelectedLayer('right'));
+
+  // Video Filters & Effects Listeners
+  const EFFECT_PRESETS = {
+    'none': { brightness: 100, contrast: 100, saturation: 100, sepia: 0, hueRotate: 0, blur: 0, vignette: 0 },
+    'vintage': { brightness: 95, contrast: 110, saturation: 75, sepia: 40, hueRotate: 0, blur: 0, vignette: 35 },
+    'cyberpunk': { brightness: 110, contrast: 130, saturation: 160, sepia: 0, hueRotate: 310, blur: 0, vignette: 25 },
+    'noir': { brightness: 105, contrast: 140, saturation: 0, sepia: 0, hueRotate: 0, blur: 0, vignette: 40 },
+    'warm': { brightness: 105, contrast: 105, saturation: 120, sepia: 25, hueRotate: 15, blur: 0, vignette: 20 },
+    'scifi': { brightness: 100, contrast: 125, saturation: 130, sepia: 0, hueRotate: 180, blur: 0, vignette: 30 },
+    'vhs': { brightness: 115, contrast: 120, saturation: 140, sepia: 15, hueRotate: 340, blur: 0.5, vignette: 30 },
+    'contrast': { brightness: 100, contrast: 160, saturation: 120, sepia: 0, hueRotate: 0, blur: 0, vignette: 15 }
+  };
+
+  function syncEffectsUI() {
+    const eff = canvasEditor.effects;
+    if (rangeEffBrightness) {
+      rangeEffBrightness.value = eff.brightness;
+      if (labelEffBrightness) labelEffBrightness.textContent = eff.brightness + '%';
+    }
+    if (rangeEffContrast) {
+      rangeEffContrast.value = eff.contrast;
+      if (labelEffContrast) labelEffContrast.textContent = eff.contrast + '%';
+    }
+    if (rangeEffSaturation) {
+      rangeEffSaturation.value = eff.saturation;
+      if (labelEffSaturation) labelEffSaturation.textContent = eff.saturation + '%';
+    }
+    if (rangeEffVignette) {
+      rangeEffVignette.value = eff.vignette;
+      if (labelEffVignette) labelEffVignette.textContent = eff.vignette + '%';
+    }
+    if (rangeEffSepia) {
+      rangeEffSepia.value = eff.sepia;
+      if (labelEffSepia) labelEffSepia.textContent = eff.sepia + '%';
+    }
+    if (rangeEffHue) {
+      rangeEffHue.value = eff.hueRotate;
+      if (labelEffHue) labelEffHue.textContent = eff.hueRotate + '°';
+    }
+    if (rangeEffBlur) {
+      rangeEffBlur.value = eff.blur;
+      if (labelEffBlur) labelEffBlur.textContent = eff.blur + 'px';
+    }
+  }
+
+  effectPresetButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      effectPresetButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const presetKey = btn.getAttribute('data-effect-preset');
+      const presetValues = EFFECT_PRESETS[presetKey] || EFFECT_PRESETS['none'];
+      canvasEditor.updateEffects({ preset: presetKey, ...presetValues });
+      syncEffectsUI();
+    });
+  });
+
+  if (rangeEffBrightness) {
+    rangeEffBrightness.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (labelEffBrightness) labelEffBrightness.textContent = val + '%';
+      canvasEditor.updateEffects({ brightness: val });
+    });
+  }
+
+  if (rangeEffContrast) {
+    rangeEffContrast.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (labelEffContrast) labelEffContrast.textContent = val + '%';
+      canvasEditor.updateEffects({ contrast: val });
+    });
+  }
+
+  if (rangeEffSaturation) {
+    rangeEffSaturation.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (labelEffSaturation) labelEffSaturation.textContent = val + '%';
+      canvasEditor.updateEffects({ saturation: val });
+    });
+  }
+
+  if (rangeEffVignette) {
+    rangeEffVignette.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (labelEffVignette) labelEffVignette.textContent = val + '%';
+      canvasEditor.updateEffects({ vignette: val });
+    });
+  }
+
+  if (rangeEffSepia) {
+    rangeEffSepia.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (labelEffSepia) labelEffSepia.textContent = val + '%';
+      canvasEditor.updateEffects({ sepia: val });
+    });
+  }
+
+  if (rangeEffHue) {
+    rangeEffHue.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (labelEffHue) labelEffHue.textContent = val + '°';
+      canvasEditor.updateEffects({ hueRotate: val });
+    });
+  }
+
+  if (rangeEffBlur) {
+    rangeEffBlur.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (labelEffBlur) labelEffBlur.textContent = val + 'px';
+      canvasEditor.updateEffects({ blur: val });
+    });
+  }
+
+  if (btnResetEffects) {
+    btnResetEffects.addEventListener('click', () => {
+      canvasEditor.updateEffects(EFFECT_PRESETS['none']);
+      effectPresetButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-effect-preset') === 'none'));
+      syncEffectsUI();
+    });
+  }
+
+  // Project Save, Open & Auto-Save System
+  function getProjectPayload() {
+    return {
+      version: '2.2.0',
+      title: projectTitleLabel ? projectTitleLabel.textContent : 'Projeto Karaokê',
+      timestamp: new Date().toISOString(),
+      aspectRatio: aspectFrame && aspectFrame.classList.contains('aspect-16-9') ? '16:9' : '9:16',
+      audioTrim: {
+        start: audioManager.trimStart || 0,
+        end: audioManager.trimEnd || audioManager.duration || 32
+      },
+      srtText: lyricsSync.exportSRT(),
+      canvas: canvasEditor.getProjectState()
+    };
+  }
+
+  function applyProjectPayload(data) {
+    if (!data) return;
+    if (data.title && projectTitleLabel) {
+      projectTitleLabel.textContent = data.title;
+    }
+    if (data.aspectRatio) {
+      if (data.aspectRatio === '16:9') {
+        if (ratio169) ratio169.click();
+      } else {
+        if (ratio916) ratio916.click();
+      }
+    }
+    if (data.srtText) {
+      lyricsSync.importSRT(data.srtText);
+      renderLyricsList();
+      renderTimelineLyrics();
+    }
+    if (data.audioTrim) {
+      audioManager.setTrim(data.audioTrim.start, data.audioTrim.end);
+      updateTrimInputs(data.audioTrim.start, data.audioTrim.end);
+    }
+    if (data.canvas) {
+      canvasEditor.loadProjectState(data.canvas);
+      syncEffectsUI();
+      updateLayersUI();
+    }
+    canvasEditor.needsRedraw = true;
+  }
+
+  if (btnSaveProject) {
+    btnSaveProject.addEventListener('click', () => {
+      const payload = getProjectPayload();
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const filename = (payload.title.toLowerCase().replace(/[^a-z0-9_-]/g, '_') || 'projeto') + '.kproject';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  if (btnOpenProject && inputOpenProject) {
+    btnOpenProject.addEventListener('click', () => {
+      inputOpenProject.click();
+    });
+
+    inputOpenProject.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = JSON.parse(evt.target.result);
+            applyProjectPayload(data);
+          } catch (err) {
+            alert("Erro ao carregar o arquivo de projeto. Verifique se é um arquivo .kproject válido.");
+            console.error(err);
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      }
+    });
+  }
+
+  // General Layer Property listeners
   numLayerStart.addEventListener('change', (e) => {
     const val = Math.max(0, parseFloat(e.target.value));
     if (canvasEditor.selectedLayerId) {
@@ -1611,7 +2163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Text and icon
       const textSpan = document.createElement('span');
       textSpan.className = 'layer-block-text';
-      const iconEmoji = isSpectrum ? '⚡' : (layer.type === 'video' ? '🎬' : '🖼️');
+      const iconEmoji = isSpectrum ? '⚡' : (layer.type === 'text' ? '🔤' : (layer.type === 'video' ? '🎬' : '🖼️'));
       textSpan.innerHTML = `${iconEmoji} ${layer.name}`;
 
       // Right resize handle
