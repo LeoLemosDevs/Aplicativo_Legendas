@@ -2,6 +2,18 @@
 
 Todas as alterações notáveis deste projeto estão documentadas neste arquivo.
 
+## [1.5.0] - 2026-08-26 (Versão 1.5)
+### 🎛️ Novas Funcionalidades e Edição Não-Linear
+- **Corte da Música (Audio Trim):** Marcadores arrastáveis na timeline e campos numéricos no painel de Mídia para cortar e usar trechos específicos de músicas longas (ex: 60s para Shorts).
+- **Timeline Multitrack Completa:** Trilhas dedicadas para Áudio (com forma de onda e trim handles), Camadas Visuais e Legendas.
+- **Edição de Camadas por Mouse:** Cada imagem e elemento visual possui uma barra na timeline com handles para ajustar o segundo de entrada e saída (`start` e `end`).
+- **Renderização Imediata no Canvas:** Elementos, imagens e vídeos de fundo aparecem instantaneamente ao carregar, sem necessidade de dar Play.
+- **Sincronização de Vídeo Pausado:** Scrubbing na timeline atualiza os quadros do vídeo de fundo em tempo real.
+- **Arrastar e Soltar Global (Drag & Drop):** Suporte para soltar arquivos `.mp3`, `.wav`, `.png`, `.jpg`, `.mp4` e `.srt` direto da área de trabalho no aplicativo.
+- **Timeline Expansível:** Botão para alternar a altura da timeline entre modo compacto e modo expandido.
+
+---
+
 ## [1.0.0] - 2026-08-26 (Versão 1.0 Funcionando)
 ### 🚀 Recursos Completos em Funcionamento
 - **Áudio Nativo Cristalino:** Reprodução direta e estável a 60 FPS sem ruídos, cliques ou engasgos.
