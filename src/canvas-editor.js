@@ -640,13 +640,9 @@ export class CanvasEditor {
       currentX = boxX + (boxW - totalLineWidth) / 2;
     }
     
-    // LINE-LEVEL COLOR: active = highlight, past line = highlight, future = base
-    const lineIsPast = !isActiveLine &&
-      words.length > 0 &&
-      words[words.length - 1].end !== null &&
-      time > words[words.length - 1].end;
-    
-    const fillColor = (isActiveLine || lineIsPast)
+    // ONLY the currently active/sung line gets the highlight color.
+    // Past lines that have already scrolled up return to base color so singer stays focused on the active text.
+    const fillColor = isActiveLine
       ? this.lyricsStyle.highlightColor
       : this.lyricsStyle.color;
     
