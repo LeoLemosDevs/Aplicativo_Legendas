@@ -97,9 +97,13 @@ export class VideoExporter {
         localSpeakerGain.gain.setValueAtTime(0.8, audioCtx.currentTime); // Heard locally
       }
       
+      const exportStart = this.audioManager.trimStart || 0;
+      const exportEnd = this.audioManager.trimEnd || this.audioManager.duration || 32;
+      const exportTotal = Math.max(0.1, exportEnd - exportStart);
+
       // Play background video elements from the start if we have one
       if (this.canvasEditor.background.type === 'video' && this.canvasEditor.background.element) {
-        this.canvasEditor.background.element.currentTime = 0;
+        this.canvasEditor.background.element.currentTime = exportStart;
         this.canvasEditor.background.element.play().catch(e => console.log(e));
       }
       
@@ -160,7 +164,7 @@ export class VideoExporter {
       };
       
       // 5. Start Export
-      this.audioManager.seek(0);
+      this.audioManager.seek(exportStart);
       this.recorder.start();
       this.audioManager.play();
       
@@ -176,19 +180,18 @@ export class VideoExporter {
           lastFrameTime = timestamp - (elapsed % fpsInterval);
           
           const curTime = this.audioManager.currentTime;
-          const duration = this.audioManager.duration;
           
           // Render current state to offscreen export canvas
           this.canvasEditor.render(this.exportCanvas, curTime);
           
-          // Progress update
-          const progress = Math.min(100, Math.floor((curTime / duration) * 100));
+          // Progress update based on trimmed duration
+          const progress = Math.min(100, Math.max(0, Math.floor(((curTime - exportStart) / exportTotal) * 100)));
           if (this.onProgress) {
             this.onProgress(progress);
           }
           
           // End check
-          if (curTime >= duration || !this.audioManager.isPlaying) {
+          if (curTime >= exportEnd || !this.audioManager.isPlaying) {
             this.recorder.stop();
             return;
           }

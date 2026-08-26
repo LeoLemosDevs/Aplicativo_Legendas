@@ -90,6 +90,7 @@ export class CanvasEditor {
     img.onload = () => {
       this.background = { type: 'image', color: '', file, url, element: img };
       this.needsRedraw = true;
+      if (this.onLayersUpdated) this.onLayersUpdated();
     };
   }
 
@@ -108,6 +109,7 @@ export class CanvasEditor {
         video.play().catch(e => console.log("Video auto play prevented", e));
       }
       this.needsRedraw = true;
+      if (this.onLayersUpdated) this.onLayersUpdated();
     };
   }
 
@@ -126,6 +128,9 @@ export class CanvasEditor {
         w = maxW;
       }
       
+      const layerStart = this.audioManager.trimStart !== undefined ? this.audioManager.trimStart : 0;
+      const layerEnd = this.audioManager.trimEnd !== undefined ? this.audioManager.trimEnd : (this.audioManager.duration || 32);
+
       const newLayer = {
         id: 'layer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
         name: file.name,
@@ -138,13 +143,14 @@ export class CanvasEditor {
         width: w,
         height: h,
         opacity: 1.0,
-        start: 0,
-        end: this.audioManager.duration
+        start: layerStart,
+        end: layerEnd
       };
       
       this.layers.push(newLayer);
       this.selectedLayerId = newLayer.id;
       this.needsRedraw = true;
+      if (this.onLayersUpdated) this.onLayersUpdated();
     };
   }
 
@@ -152,6 +158,7 @@ export class CanvasEditor {
     this.layers = this.layers.filter(l => l.id !== id);
     if (this.selectedLayerId === id) this.selectedLayerId = null;
     this.needsRedraw = true;
+    if (this.onLayersUpdated) this.onLayersUpdated();
   }
 
   updateLayerOpacity(id, opacity) {
@@ -172,12 +179,14 @@ export class CanvasEditor {
       this.layers[index] = this.layers[index + 1];
       this.layers[index + 1] = temp;
       this.needsRedraw = true;
+      if (this.onLayersUpdated) this.onLayersUpdated();
     } else if (direction === 'down' && index > 0) {
       // Swap with previous
       const temp = this.layers[index];
       this.layers[index] = this.layers[index - 1];
       this.layers[index - 1] = temp;
       this.needsRedraw = true;
+      if (this.onLayersUpdated) this.onLayersUpdated();
     }
   }
 

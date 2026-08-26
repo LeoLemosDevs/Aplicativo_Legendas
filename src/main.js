@@ -146,7 +146,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const timeDuration = document.getElementById('time-duration');
   const rangeVolume = document.getElementById('range-volume');
   const waveformCanvas = document.getElementById('waveform-canvas');
+  const timelineLayersTrack = document.getElementById('timeline-layers-track');
   const timelineLyricsTrack = document.getElementById('timeline-lyrics-track');
+  const appTimeline = document.querySelector('.app-timeline');
+  const btnToggleTimelineSize = document.getElementById('btn-toggle-timeline-size');
+  const iconTimelineSize = document.getElementById('icon-timeline-size');
+  const labelTimelineSize = document.getElementById('label-timeline-size');
+
+  // Audio Trim Elements
+  const numTrimStart = document.getElementById('num-trim-start');
+  const numTrimEnd = document.getElementById('num-trim-end');
+  const labelTrimDuration = document.getElementById('label-trim-duration');
+  const btnTrimReset = document.getElementById('btn-trim-reset');
   
   // 4. Populate Fonts Options
   GOOGLE_FONTS.forEach(font => {
@@ -206,6 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear list of layers
     updateLayersUI();
     renderTimelineLyrics();
+    renderTimelineLayers();
+    updateTrimInputs(audioManager.trimStart, audioManager.trimEnd);
   }
 
   // 6. Navigation Tabs Event Handler
@@ -894,7 +907,16 @@ document.addEventListener('DOMContentLoaded', () => {
       numLayerStart.value = selectedLayer.start;
       numLayerEnd.value = selectedLayer.end;
     }
+
+    renderTimelineLayers();
   }
+
+  // Hook canvasEditor onLayersUpdated to keep UI and timeline in sync
+  canvasEditor.onLayersUpdated = () => {
+    updateLayersUI();
+    renderTimelineLayers();
+    canvasEditor.needsRedraw = true;
+  };
 
   // Click outside canvas / on viewport background to deselect all
   const editorViewport = document.querySelector('.editor-viewport');
@@ -1014,13 +1036,271 @@ document.addEventListener('DOMContentLoaded', () => {
     audioManager.setVolume(parseFloat(e.target.value));
   });
 
-  // Timeline waveform scrub scrubbing
-  waveformCanvas.addEventListener('click', (e) => {
+  // Audio Trim Helpers & Listeners
+  function updateTrimInputs(start, end) {
+    if (numTrimStart) numTrimStart.value = (start || 0).toFixed(1);
+    if (numTrimEnd) numTrimEnd.value = (end || audioManager.duration || 32).toFixed(1);
+    if (labelTrimDuration) {
+      const dur = Math.max(0, (end || 0) - (start || 0)).toFixed(1);
+      labelTrimDuration.textContent = `${dur}s`;
+    }
+  }
+
+  audioManager.onTrimChangeCallback = (start, end) => {
+    updateTrimInputs(start, end);
+    canvasEditor.needsRedraw = true;
+  };
+
+  if (numTrimStart) {
+    numTrimStart.addEventListener('change', (e) => {
+      const val = parseFloat(e.target.value) || 0;
+      audioManager.setTrim(val, audioManager.trimEnd);
+    });
+  }
+
+  if (numTrimEnd) {
+    numTrimEnd.addEventListener('change', (e) => {
+      const val = parseFloat(e.target.value) || audioManager.duration;
+      audioManager.setTrim(audioManager.trimStart, val);
+    });
+  }
+
+  if (btnTrimReset) {
+    btnTrimReset.addEventListener('click', () => {
+      audioManager.setTrim(0, audioManager.duration);
+    });
+  }
+
+  // Timeline Size Expand/Collapse Toggle
+  if (btnToggleTimelineSize && appTimeline) {
+    btnToggleTimelineSize.addEventListener('click', () => {
+      const isExp = appTimeline.classList.toggle('expanded');
+      if (labelTimelineSize) labelTimelineSize.textContent = isExp ? 'Reduzir' : 'Expandir';
+      if (iconTimelineSize) {
+        iconTimelineSize.setAttribute('data-lucide', isExp ? 'minimize-2' : 'maximize-2');
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  }
+
+  // Interactive Waveform scrubbing and Audio Trim Handles Dragging
+  let isWaveformDragging = false;
+  let waveformDragMode = null; // 'scrub' | 'trim-start' | 'trim-end'
+
+  waveformCanvas.addEventListener('pointerdown', (e) => {
     const rect = waveformCanvas.getBoundingClientRect();
-    const clickRatio = (e.clientX - rect.left) / rect.width;
-    const seekTime = clickRatio * audioManager.duration;
-    audioManager.seek(seekTime);
+    const clickX = e.clientX - rect.left;
+    const dur = audioManager.duration || 32;
+    const startX = (audioManager.trimStart / dur) * rect.width;
+    const endX = (audioManager.trimEnd / dur) * rect.width;
+
+    if (Math.abs(clickX - startX) <= 14) {
+      waveformDragMode = 'trim-start';
+    } else if (Math.abs(clickX - endX) <= 14) {
+      waveformDragMode = 'trim-end';
+    } else {
+      waveformDragMode = 'scrub';
+      const seekTime = Math.max(0, Math.min(dur, (clickX / rect.width) * dur));
+      audioManager.seek(seekTime);
+    }
+
+    isWaveformDragging = true;
+    waveformCanvas.setPointerCapture(e.pointerId);
   });
+
+  waveformCanvas.addEventListener('pointermove', (e) => {
+    if (!isWaveformDragging) {
+      const rect = waveformCanvas.getBoundingClientRect();
+      const hoverX = e.clientX - rect.left;
+      const dur = audioManager.duration || 32;
+      const startX = (audioManager.trimStart / dur) * rect.width;
+      const endX = (audioManager.trimEnd / dur) * rect.width;
+
+      if (Math.abs(hoverX - startX) <= 14 || Math.abs(hoverX - endX) <= 14) {
+        waveformCanvas.style.cursor = 'col-resize';
+      } else {
+        waveformCanvas.style.cursor = 'pointer';
+      }
+      return;
+    }
+
+    const rect = waveformCanvas.getBoundingClientRect();
+    const moveX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const dur = audioManager.duration || 32;
+    const timeAtX = (moveX / rect.width) * dur;
+
+    if (waveformDragMode === 'trim-start') {
+      audioManager.setTrim(timeAtX, audioManager.trimEnd);
+    } else if (waveformDragMode === 'trim-end') {
+      audioManager.setTrim(audioManager.trimStart, timeAtX);
+    } else if (waveformDragMode === 'scrub') {
+      audioManager.seek(timeAtX);
+    }
+  });
+
+  function stopWaveformDrag(e) {
+    if (isWaveformDragging) {
+      isWaveformDragging = false;
+      waveformDragMode = null;
+      try { waveformCanvas.releasePointerCapture(e.pointerId); } catch(err) {}
+    }
+  }
+
+  waveformCanvas.addEventListener('pointerup', stopWaveformDrag);
+  waveformCanvas.addEventListener('pointercancel', stopWaveformDrag);
+
+  // Helper formatting for seconds to MM:SS
+  function formatShortTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = (sec % 60).toFixed(1);
+    return `${String(m).padStart(2, '0')}:${s.padStart(4, '0')}`;
+  }
+
+  // Renders interactive layer blocks in timeline
+  function renderTimelineLayers() {
+    if (!timelineLayersTrack) return;
+    timelineLayersTrack.innerHTML = "";
+
+    const layers = canvasEditor.layers;
+    const duration = audioManager.duration || 32;
+
+    if (layers.length === 0) {
+      const placeholder = document.createElement('div');
+      placeholder.style.color = 'var(--text-muted)';
+      placeholder.style.fontSize = '0.68rem';
+      placeholder.style.padding = '10px 14px';
+      placeholder.style.fontStyle = 'italic';
+      placeholder.textContent = 'Nenhuma camada visual. Adicione imagens ou arraste arquivos para cá.';
+      timelineLayersTrack.appendChild(placeholder);
+      return;
+    }
+
+    layers.forEach((layer) => {
+      const start = Math.max(0, layer.start !== undefined ? layer.start : 0);
+      const end = (layer.end !== undefined && layer.end > start) ? Math.min(duration, layer.end) : duration;
+      
+      const leftPercent = (start / duration) * 100;
+      const widthPercent = Math.max(1.0, ((end - start) / duration) * 100);
+
+      const block = document.createElement('div');
+      block.className = 'timeline-layer-block' + (canvasEditor.selectedLayerId === layer.id ? ' selected' : '');
+      block.style.left = `${leftPercent}%`;
+      block.style.width = `${widthPercent}%`;
+      block.setAttribute('data-layer-id', layer.id);
+
+      // Left resize handle
+      const handleLeft = document.createElement('div');
+      handleLeft.className = 'layer-handle-left';
+      handleLeft.title = 'Arrastar início da exibição';
+
+      // Text and icon
+      const textSpan = document.createElement('span');
+      textSpan.className = 'layer-block-text';
+      textSpan.innerHTML = `🖼️ ${layer.name}`;
+
+      // Right resize handle
+      const handleRight = document.createElement('div');
+      handleRight.className = 'layer-handle-right';
+      handleRight.title = 'Arrastar fim da exibição';
+
+      block.appendChild(handleLeft);
+      block.appendChild(textSpan);
+      block.appendChild(handleRight);
+
+      // Tooltip helpers
+      let tooltip = null;
+      function showTooltip(text) {
+        if (!tooltip) {
+          tooltip = document.createElement('div');
+          tooltip.className = 'timeline-drag-tooltip';
+          block.appendChild(tooltip);
+        }
+        tooltip.textContent = text;
+      }
+      function removeTooltip() {
+        if (tooltip) {
+          tooltip.remove();
+          tooltip = null;
+        }
+      }
+
+      function initLayerDrag(e, mode) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const trackRect = timelineLayersTrack.getBoundingClientRect();
+        const trackWidth = trackRect.width;
+        if (trackWidth <= 0) return;
+
+        const startMouseX = e.clientX;
+        const origStart = layer.start;
+        const origEnd = layer.end;
+        const origDuration = origEnd - origStart;
+
+        block.classList.add('dragging');
+        canvasEditor.selectedLayerId = layer.id;
+        updateLayersUI();
+
+        let curStart = origStart;
+        let curEnd = origEnd;
+
+        function onPointerMove(moveEvt) {
+          const deltaX = moveEvt.clientX - startMouseX;
+          const deltaSeconds = (deltaX / trackWidth) * duration;
+
+          if (mode === 'move') {
+            curStart = Math.max(0, origStart + deltaSeconds);
+            curEnd = curStart + origDuration;
+            if (curEnd > duration) {
+              curEnd = duration;
+              curStart = Math.max(0, curEnd - origDuration);
+            }
+          } else if (mode === 'resize-left') {
+            curStart = Math.max(0, Math.min(origEnd - 0.2, origStart + deltaSeconds));
+            curEnd = origEnd;
+          } else if (mode === 'resize-right') {
+            curEnd = Math.max(origStart + 0.2, Math.min(duration, origEnd + deltaSeconds));
+            curStart = origStart;
+          }
+
+          const liveLeft = (curStart / duration) * 100;
+          const liveWidth = Math.max(0.5, ((curEnd - curStart) / duration) * 100);
+          block.style.left = `${liveLeft}%`;
+          block.style.width = `${liveWidth}%`;
+
+          layer.start = curStart;
+          layer.end = curEnd;
+
+          const durSec = (curEnd - curStart).toFixed(1);
+          showTooltip(`${formatShortTime(curStart)} ➔ ${formatShortTime(curEnd)} (${durSec}s)`);
+
+          canvasEditor.needsRedraw = true;
+        }
+
+        function onPointerUp() {
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+
+          block.classList.remove('dragging');
+          removeTooltip();
+          updateLayersUI();
+          canvasEditor.needsRedraw = true;
+        }
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      }
+
+      handleLeft.addEventListener('pointerdown', (e) => initLayerDrag(e, 'resize-left'));
+      handleRight.addEventListener('pointerdown', (e) => initLayerDrag(e, 'resize-right'));
+      block.addEventListener('pointerdown', (e) => {
+        if (e.target === handleLeft || e.target === handleRight) return;
+        initLayerDrag(e, 'move');
+      });
+
+      timelineLayersTrack.appendChild(block);
+    });
+  }
 
   // Renders interactive lyric bars in timeline track with drag and resize
   function renderTimelineLyrics() {
@@ -1425,6 +1705,50 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(animationLoop);
   }
   
+  // 14. Global Drag & Drop Support (Files from PC)
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (aspectFrame) aspectFrame.classList.add('drag-over-highlight');
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    if (e.clientX === 0 || e.clientY === 0) {
+      if (aspectFrame) aspectFrame.classList.remove('drag-over-highlight');
+    }
+  });
+
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (aspectFrame) aspectFrame.classList.remove('drag-over-highlight');
+
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      const name = file.name.toLowerCase();
+
+      if (file.type.startsWith('audio/') || name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.m4a') || name.endsWith('.ogg')) {
+        audioManager.loadUserAudio(file);
+        audioFileInfo.classList.remove('hidden');
+        audioFileInfo.querySelector('.file-name-txt').textContent = file.name;
+        dropAudio.classList.add('hidden');
+        alert(`🎵 Música "${file.name}" carregada com sucesso!`);
+      } else if (file.type.startsWith('image/') || name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.webp') || name.endsWith('.gif')) {
+        canvasEditor.addForegroundLayer(file);
+        document.querySelector('[data-tab="tab-layers"]').click();
+      } else if (file.type.startsWith('video/') || name.endsWith('.mp4') || name.endsWith('.webm')) {
+        canvasEditor.setBackgroundVideo(file);
+        bgVideoInfo.classList.remove('hidden');
+        bgVideoInfo.querySelector('.file-name-txt').textContent = file.name;
+        dropBgVideo.classList.add('hidden');
+        bgOptVideo.click();
+        alert(`🎬 Vídeo de fundo "${file.name}" carregado com sucesso!`);
+      } else if (name.endsWith('.srt')) {
+        const reader = new FileReader();
+        reader.onload = (evt) => importFromSRT(evt.target.result);
+        reader.readAsText(file);
+      }
+    }
+  });
+
   // Start loop immediately
   requestAnimationFrame(animationLoop);
 });

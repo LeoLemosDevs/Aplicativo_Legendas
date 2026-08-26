@@ -205,6 +205,33 @@
                   <i data-lucide="check-circle" class="success-icon"></i>
                   <span class="file-name-txt">audio.mp3</span>
                 </div>
+
+                <!-- Audio Trimming Section -->
+                <div class="setting-section" style="margin-top: 12px; margin-bottom: 0; padding: 12px; background: rgba(16, 185, 129, 0.07); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <i data-lucide="scissors" style="color: #10b981; width: 16px; height: 16px;"></i>
+                      <span style="font-size: 0.85rem; font-weight: 700; color: #10b981;">Corte da Música (Trim)</span>
+                    </div>
+                    <button id="btn-trim-reset" class="btn btn-secondary btn-small" style="font-size: 0.7rem; padding: 3px 8px;">Restaurar Total</button>
+                  </div>
+                  <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px;">Ajuste o trecho exato (ex: 60s para Shorts) ou arraste as alças verde/vermelha na timeline.</p>
+                  
+                  <div class="timing-range-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="num-trim-start" style="font-size: 0.75rem; color: #10b981;">🟢 Início (s):</label>
+                      <input type="number" id="num-trim-start" min="0" step="0.5" value="0">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="num-trim-end" style="font-size: 0.75rem; color: #ef4444;">🔴 Fim (s):</label>
+                      <input type="number" id="num-trim-end" min="0" step="0.5" value="32">
+                    </div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">Duração do Trecho:</span>
+                    <span id="label-trim-duration" style="font-size: 0.82rem; font-weight: 700; color: #10b981;">32.0s</span>
+                  </div>
+                </div>
               </div>
               
               <!-- Background Choice -->
@@ -628,20 +655,38 @@
             <i data-lucide="volume-2" id="volume-icon"></i>
             <input type="range" id="range-volume" min="0" max="1" step="0.05" value="0.8" title="Volume">
           </div>
+
+          <!-- Timeline Track Expander and Info -->
+          <div class="timeline-quick-actions" style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+            <span id="timeline-info-badge" style="font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+              <i data-lucide="mouse-pointer" style="width: 12px; height: 12px;"></i> Arraste pontas para cortar
+            </span>
+            <button id="btn-toggle-timeline-size" class="btn btn-secondary btn-small" title="Expandir/Reduzir Altura da Timeline" style="padding: 4px 10px; font-size: 0.75rem;">
+              <i data-lucide="maximize-2" id="icon-timeline-size" style="width: 14px; height: 14px;"></i> <span id="label-timeline-size">Expandir</span>
+            </button>
+          </div>
         </div>
         
-        <!-- Main Timeline Waveform & Track -->
-        <div class="timeline-scroll-area">
+        <!-- Main Timeline Waveform & Multitrack Container -->
+        <div class="timeline-scroll-area" id="timeline-scroll-area">
           <div class="timeline-tracks-container">
-            <!-- Audio Track row -->
+            <!-- 1. Audio Track row with Waveform & Trim Handles -->
             <div class="timeline-row audio-track-row">
               <div class="track-label"><i data-lucide="music"></i> Áudio</div>
-              <div class="track-timeline-view">
-                <canvas id="waveform-canvas" height="60"></canvas>
+              <div class="track-timeline-view" id="timeline-audio-track">
+                <canvas id="waveform-canvas" height="52"></canvas>
+              </div>
+            </div>
+
+            <!-- 2. Visual Elements & Layers Track row -->
+            <div class="timeline-row layers-track-row">
+              <div class="track-label"><i data-lucide="layers"></i> Camadas</div>
+              <div class="track-timeline-view" id="timeline-layers-track">
+                <!-- Layer blocks populated dynamically -->
               </div>
             </div>
             
-            <!-- Lyrics Track row -->
+            <!-- 3. Lyrics Track row -->
             <div class="timeline-row lyrics-track-row">
               <div class="track-label"><i data-lucide="align-left"></i> Legenda</div>
               <div class="track-timeline-view" id="timeline-lyrics-track">

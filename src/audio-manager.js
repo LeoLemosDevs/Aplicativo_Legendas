@@ -16,6 +16,8 @@ export class AudioManager {
     this.isPlaying = false;
     this._currentTime = 0; // Backing field for demo mode
     this.duration = 32; // Default demo duration is 32 seconds
+    this.trimStart = 0; // Audio trim start time in seconds
+    this.trimEnd = 32; // Audio trim end time in seconds
     this.isDemo = true;
     
     // Audio analysis data for waveform rendering
@@ -31,11 +33,17 @@ export class AudioManager {
     // Callbacks
     this.onTimeUpdateCallback = null;
     this.onEndCallback = null;
+    this.onTrimChangeCallback = null;
     
     // Set up standard audio element events
     this.audioElement.addEventListener('timeupdate', () => {
       if (!this.isDemo && this.isPlaying) {
-        // No longer needed for primary sync (getter reads live), but keep for callback
+        if (this.audioElement.currentTime >= this.trimEnd) {
+          this.pause();
+          this.seek(this.trimStart);
+          if (this.onEndCallback) this.onEndCallback();
+          return;
+        }
         if (this.onTimeUpdateCallback) this.onTimeUpdateCallback(this.audioElement.currentTime);
       }
     });
@@ -43,6 +51,7 @@ export class AudioManager {
     this.audioElement.addEventListener('ended', () => {
       if (!this.isDemo) {
         this.isPlaying = false;
+        this.seek(this.trimStart);
         if (this.onEndCallback) this.onEndCallback();
       }
     });
@@ -101,8 +110,11 @@ export class AudioManager {
         this.audioCtx.decodeAudioData(buffer.slice(0), (audioBuffer) => {
           this.decodedBuffer = audioBuffer;
           this.duration = audioBuffer.duration;
+          this.trimStart = 0;
+          this.trimEnd = audioBuffer.duration;
           this.extractPeaks(audioBuffer);
           if (this.onTimeUpdateCallback) this.onTimeUpdateCallback(0);
+          if (this.onTrimChangeCallback) this.onTrimChangeCallback(0, this.duration);
         });
       } catch (err) {
         console.error("Error decoding audio data for waveform", err);
@@ -115,12 +127,26 @@ export class AudioManager {
     this.isDemo = true;
     this.isPlaying = false;
     this.duration = 32; // Demo song duration is 32 seconds
+    this.trimStart = 0;
+    this.trimEnd = 32;
     this.currentTime = 0;
     this.pauseOffset = 0;
     this.audioElement.src = '';
     this.decodedBuffer = null;
     this.generateDemoWaveform();
     if (this.onTimeUpdateCallback) this.onTimeUpdateCallback(0);
+    if (this.onTrimChangeCallback) this.onTrimChangeCallback(0, 32);
+  }
+
+  setTrim(start, end) {
+    const s = Math.max(0, Math.min(parseFloat(start) || 0, this.duration - 0.5));
+    const e = Math.max(s + 0.5, Math.min(parseFloat(end) || this.duration, this.duration));
+    this.trimStart = s;
+    this.trimEnd = e;
+    if (this.currentTime < this.trimStart || this.currentTime > this.trimEnd) {
+      this.seek(this.trimStart);
+    }
+    if (this.onTrimChangeCallback) this.onTrimChangeCallback(this.trimStart, this.trimEnd);
   }
 
   extractPeaks(audioBuffer) {
@@ -167,6 +193,10 @@ export class AudioManager {
     this.initAudioContext();
     if (this.isPlaying) return;
     
+    if (this.pauseOffset < this.trimStart || this.pauseOffset >= this.trimEnd) {
+      this.pauseOffset = this.trimStart;
+    }
+    
     this.isPlaying = true;
     
     if (this.isDemo) {
@@ -200,8 +230,8 @@ export class AudioManager {
 
   stop() {
     this.isPlaying = false;
-    this._currentTime = 0;
-    this.pauseOffset = 0;
+    this._currentTime = this.trimStart;
+    this.pauseOffset = this.trimStart;
     
     if (this.isDemo) {
       if (this.synthInterval) {
@@ -210,10 +240,10 @@ export class AudioManager {
       }
     } else {
       this.audioElement.pause();
-      this.audioElement.currentTime = 0;
+      this.audioElement.currentTime = this.trimStart;
     }
     
-    if (this.onTimeUpdateCallback) this.onTimeUpdateCallback(0);
+    if (this.onTimeUpdateCallback) this.onTimeUpdateCallback(this.trimStart);
   }
 
   seek(time) {
@@ -252,8 +282,8 @@ export class AudioManager {
       // Notify page
       if (this.onTimeUpdateCallback) this.onTimeUpdateCallback(this.currentTime);
       
-      // End song check
-      if (this.currentTime >= this.duration) {
+      // End song / trim limit check
+      if (this.currentTime >= this.trimEnd) {
         this.stop();
         if (this.onEndCallback) this.onEndCallback();
         return;
@@ -263,17 +293,15 @@ export class AudioManager {
       const lookaheadStart = elapsed;
       const lookaheadEnd = elapsed + scheduleAheadTime;
       
-      DEMO_MELODY.forEach((note, index) => {
-        // If note falls in the lookahead window and hasn't been scheduled yet
+      DEMO_MELODY.forEach((note) => {
         if (note.time >= lookaheadStart && note.time < lookaheadEnd) {
-          // Verify we don't double-schedule (or we can track schedule state)
           if (note.scheduledTime !== this.playbackStartTime + note.time) {
             this.playSynthNote(note);
             note.scheduledTime = this.playbackStartTime + note.time;
           }
         }
       });
-    }, 50); // Run poll every 50ms
+    }, 50);
   }
 
   playSynthNote(note) {
@@ -291,32 +319,27 @@ export class AudioManager {
     noteGain.connect(this.gainNode);
     
     if (note.isChord) {
-      // Warm chord pad (triangle waves, low volume, slow attack/decay)
       osc.type = 'triangle';
-      
       noteGain.gain.setValueAtTime(0, startTime);
-      noteGain.gain.linearRampToValueAtTime(0.12, startTime + 0.15); // soft fade in
+      noteGain.gain.linearRampToValueAtTime(0.12, startTime + 0.15);
       noteGain.gain.setValueAtTime(0.12, startTime + duration - 0.2);
-      noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration); // slow fade out
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
     } else {
-      // Beautiful pluck melody (sine + triangle chime, fast attack, envelope decay)
       osc.type = 'sine';
-      
-      // We can add a second oscillator for harmonics
       const subOsc = this.audioCtx.createOscillator();
       const subGain = this.audioCtx.createGain();
       subOsc.connect(subGain);
       subGain.connect(this.gainNode);
       subOsc.type = 'triangle';
-      subOsc.frequency.setValueAtTime(freq / 2, startTime); // One octave down
+      subOsc.frequency.setValueAtTime(freq / 2, startTime);
       
       subGain.gain.setValueAtTime(0, startTime);
       subGain.gain.linearRampToValueAtTime(0.05, startTime + 0.02);
       subGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration * 0.8);
       
       noteGain.gain.setValueAtTime(0, startTime);
-      noteGain.gain.linearRampToValueAtTime(0.25, startTime + 0.01); // fast punch
-      noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration); // bell-like decay
+      noteGain.gain.linearRampToValueAtTime(0.25, startTime + 0.01);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
       
       subOsc.start(startTime);
       subOsc.stop(startTime + duration);
@@ -327,7 +350,7 @@ export class AudioManager {
     osc.stop(startTime + duration);
   }
 
-  // Draw the waveform canvas
+  // Draw the waveform canvas with audio trimming range and handles
   drawWaveform(canvas, currentTime) {
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
@@ -336,7 +359,6 @@ export class AudioManager {
     ctx.clearRect(0, 0, width, height);
     
     if (this.waveformPeaks.length === 0) {
-      // Draw flatline if no audio is loaded
       ctx.strokeStyle = '#2d313f';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -351,6 +373,8 @@ export class AudioManager {
     const barWidth = (width / numPeaks) - padding;
     
     const playPercent = currentTime / this.duration;
+    const trimStartPercent = this.trimStart / this.duration;
+    const trimEndPercent = this.trimEnd / this.duration;
     
     for (let i = 0; i < numPeaks; i++) {
       const peak = this.waveformPeaks[i];
@@ -358,36 +382,77 @@ export class AudioManager {
       const x = i * (barWidth + padding);
       const y = (height - barHeight) / 2;
       
-      const isPlayed = (i / numPeaks) <= playPercent;
+      const barRatio = i / numPeaks;
+      const isInsideTrim = barRatio >= trimStartPercent && barRatio <= trimEndPercent;
+      const isPlayed = barRatio <= playPercent && isInsideTrim;
       
-      // Gradient colors
-      if (isPlayed) {
-        // Neon Purple-Pink gradient for played audio
+      if (!isInsideTrim) {
+        // Excluded trim area
+        ctx.fillStyle = '#1e222d';
+      } else if (isPlayed) {
+        // Neon Purple-Pink gradient for played trimmed audio
         const grad = ctx.createLinearGradient(x, y, x, y + barHeight);
         grad.addColorStop(0, '#d946ef');
         grad.addColorStop(1, '#8b5cf6');
         ctx.fillStyle = grad;
       } else {
-        // Deep gray for unplayed audio
-        ctx.fillStyle = '#374151';
+        // Active trimmed audio
+        ctx.fillStyle = '#4b5563';
       }
       
-      // Draw rounded rectangle bars
       this.drawRoundedRect(ctx, x, y, barWidth, barHeight, 2);
     }
+    
+    // Shaded mask for trimmed-out sections
+    if (trimStartPercent > 0) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(0, 0, trimStartPercent * width, height);
+    }
+    if (trimEndPercent < 1.0) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(trimEndPercent * width, 0, (1 - trimEndPercent) * width, height);
+    }
+    
+    // Draw Start Trim Marker (Green handle)
+    const startX = trimStartPercent * width;
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(startX, 0);
+    ctx.lineTo(startX, height);
+    ctx.stroke();
+    
+    // Start trim grip
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.arc(startX, 8, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw End Trim Marker (Red handle)
+    const endX = trimEndPercent * width;
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(endX, 0);
+    ctx.lineTo(endX, height);
+    ctx.stroke();
+    
+    // End trim grip
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(endX, height - 8, 6, 0, Math.PI * 2);
+    ctx.fill();
     
     // Draw current playhead cursor line
     const cursorX = playPercent * width;
     ctx.strokeStyle = '#f43f5e'; // neon rose playhead
     ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(244, 63, 94, 0.4)';
-    ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(244, 63, 94, 0.5)';
+    ctx.shadowBlur = 5;
     ctx.beginPath();
     ctx.moveTo(cursorX, 0);
     ctx.lineTo(cursorX, height);
     ctx.stroke();
-    
-    // Reset shadow
     ctx.shadowBlur = 0;
   }
   

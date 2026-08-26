@@ -1065,22 +1065,28 @@ td input {
 
 /* Bottom panel: Timeline styling */
 .app-timeline {
-  height: 190px;
-  min-height: 190px;
+  height: 220px;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--border-glass);
   z-index: 10;
   background: var(--bg-panel-solid);
+  transition: height 0.25s ease, min-height 0.25s ease;
+}
+
+.app-timeline.expanded {
+  height: 320px;
+  min-height: 320px;
 }
 
 .timeline-controls {
-  height: 52px;
-  padding: 0 24px;
+  height: 48px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--border-glass);
-  gap: 20px;
+  gap: 16px;
 }
 
 .playback-buttons {
@@ -1155,7 +1161,7 @@ td input {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 140px;
+  width: 130px;
 }
 
 .volume-slider-wrapper i {
@@ -1173,51 +1179,51 @@ td input {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .timeline-tracks-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 0 24px;
+  gap: 6px;
+  padding: 0 20px;
 }
 
 .timeline-row {
   display: flex;
   align-items: center;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   overflow: hidden;
   border: 1px solid var(--border-glass);
 }
 
 .track-label {
-  width: 100px;
-  min-width: 100px;
+  width: 90px;
+  min-width: 90px;
   height: 100%;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding-left: 12px;
+  padding-left: 10px;
   border-right: 1px solid var(--border-glass);
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.18);
   user-select: none;
 }
 
 .track-label i {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   color: var(--primary);
 }
 
 .track-timeline-view {
   flex: 1;
   position: relative;
-  height: 60px;
+  height: 52px;
 }
 
 .audio-track-row .track-timeline-view {
@@ -1231,26 +1237,124 @@ td input {
   cursor: pointer;
 }
 
+/* Layers Track */
+.layers-track-row {
+  height: 40px;
+}
+
+.layers-track-row .track-timeline-view {
+  height: 100%;
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.timeline-layer-block {
+  position: absolute;
+  height: calc(100% - 6px);
+  top: 3px;
+  background: rgba(59, 130, 246, 0.25);
+  border: 1px solid #3b82f6;
+  border-radius: 5px;
+  color: #bfdbfe;
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 8px;
+  white-space: nowrap;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.timeline-layer-block:hover {
+  background: rgba(59, 130, 246, 0.45);
+  border-color: #60a5fa;
+}
+
+.timeline-layer-block.selected {
+  background: rgba(59, 130, 246, 0.55);
+  border-color: #93c5fd;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  z-index: 10;
+}
+
+.timeline-layer-block.dragging {
+  cursor: grabbing !important;
+  opacity: 0.95;
+  z-index: 25;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.6);
+  border-color: #93c5fd;
+}
+
+.timeline-layer-block .layer-block-text {
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 0 6px;
+}
+
+.timeline-layer-block .layer-handle-left,
+.timeline-layer-block .layer-handle-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.15s;
+  z-index: 2;
+}
+
+.timeline-layer-block .layer-handle-left {
+  left: 0;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.timeline-layer-block .layer-handle-right {
+  right: 0;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.timeline-layer-block .layer-handle-left:hover,
+.timeline-layer-block .layer-handle-right:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Lyrics Track */
 .lyrics-track-row {
   height: 38px;
 }
 
 .lyrics-track-row .track-timeline-view {
   height: 100%;
-  background: rgba(0,0,0,0.1);
+  background: rgba(0, 0, 0, 0.12);
   overflow: hidden;
+  position: relative;
 }
 
 /* Timeline block items representing timing markers with interactive drag/resize */
 .timeline-lyric-block {
   position: absolute;
-  height: calc(100% - 8px);
-  top: 4px;
+  height: calc(100% - 6px);
+  top: 3px;
   background: rgba(139, 92, 246, 0.25);
   border: 1px solid var(--primary);
   border-radius: 5px;
   color: #e9d5ff;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -1344,6 +1448,12 @@ td input {
   pointer-events: none;
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+
+/* Drag and Drop visual feedback highlight */
+.drag-over-highlight {
+  outline: 2px dashed #8b5cf6 !important;
+  background-color: rgba(139, 92, 246, 0.15) !important;
 }
 
 /* Export Progress modal details */
