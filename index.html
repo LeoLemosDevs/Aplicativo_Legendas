@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Google Fonts for the app UI (Outfit & Montserrat) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons via CDN for quick premium styling -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Application Custom Styling Sheet -->
+    <link rel="stylesheet" href="/src/style.css">
+    
+    <title>Karaoke Shorts Studio</title>
+  </head>
+  <body>
+    <!-- Welcome Modal -->
+    <div id="welcome-modal" class="modal-overlay">
+      <div class="welcome-box glassmorphic">
+        <div class="modal-glow"></div>
+        <div class="logo-large">
+          <i data-lucide="music-4"></i>
+          <h1>Karaoke Shorts Studio</h1>
+        </div>
+        <p>Crie vídeos Shorts de karaokê modernos, bonitos e altamente profissionais direto do seu navegador.</p>
+        
+        <div class="welcome-actions">
+          <button id="btn-welcome-demo" class="btn btn-primary btn-large glow-effect">
+            <i data-lucide="sparkles"></i>
+            Abrir Projeto Demonstrativo
+          </button>
+          <button id="btn-welcome-scratch" class="btn btn-secondary btn-large">
+            <i data-lucide="plus-circle"></i>
+            Começar do Zero
+          </button>
+        </div>
+        <div class="welcome-footer">
+          Projeto acadêmico/profissional de alta performance
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal-overlay hidden">
+      <div class="export-box glassmorphic">
+        <h2><i data-lucide="download-cloud" class="icon-pulse"></i> Exportando Vídeo</h2>
+        <p class="export-note">Por favor, mantenha esta aba ativa durante a exportação. O vídeo está sendo renderizado e gravado em tempo real.</p>
+        
+        <!-- Resolution selection (visible before starting) -->
+        <div id="export-setup-view">
+          <p class="section-desc" style="margin-bottom: 15px; font-size: 0.8rem; color: var(--text-muted);">Configure as definições de exportação do vídeo abaixo (Painel estilo OBS Studio):</p>
+          
+          <div class="obs-settings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="export-res">Resolução de Saída:</label>
+              <select id="export-res">
+                <option value="1080x1920">1080 x 1920 (FHD - 1080p)</option>
+                <option value="720x1280">720 x 1280 (HD - 720p)</option>
+                <option value="480x854">480 x 854 (SD - 480p)</option>
+              </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="export-fps">Taxa de Quadros (FPS):</label>
+              <select id="export-fps">
+                <option value="30">30 FPS (Mais Leve e Estável)</option>
+                <option value="60">60 FPS (Ultra Fluido - Alto Desempenho)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="export-mime">Codec / Formato (OBS):</label>
+              <select id="export-mime">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="export-bitrate">Bitrate do Vídeo:</label>
+              <select id="export-bitrate">
+                <option value="3000000">3 Mbps (Leve - Processamento Rápido)</option>
+                <option value="5000000" selected>5 Mbps (Recomendado - Boa Qualidade)</option>
+                <option value="8000000">8 Mbps (Alto - Alta Qualidade)</option>
+                <option value="12000000">12 Mbps (Ultra - Máxima Nitidez)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="export-audio-bitrate">Bitrate do Áudio:</label>
+              <select id="export-audio-bitrate">
+                <option value="128000">128 kbps (Padrão)</option>
+                <option value="192000" selected>192 kbps (Qualidade Alta)</option>
+                <option value="320000">320 kbps (Qualidade de Estúdio)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 6px; margin-bottom: 0;">
+              <div class="checkbox-group" style="margin-bottom: 0;">
+                <input type="checkbox" id="chk-export-hw" checked>
+                <label for="chk-export-hw" style="font-size: 0.72rem; font-weight: 600; color: #a855f7;">Acelerar por Hardware</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="checkbox-group" style="margin-bottom: 15px;">
+            <input type="checkbox" id="chk-export-mute" checked>
+            <label for="chk-export-mute">Silenciar alto-falantes locais enquanto grava</label>
+          </div>
+          
+          <div class="modal-actions">
+            <button id="btn-start-export" class="btn btn-primary glow-effect">
+              <i data-lucide="video"></i> Iniciar Gravação
+            </button>
+            <button id="btn-close-export" class="btn btn-secondary">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Progress view (visible during export) -->
+        <div id="export-progress-view" class="hidden">
+          <div class="progress-bar-container">
+            <div id="export-progress-fill" class="progress-fill"></div>
+          </div>
+          <div class="progress-info">
+            <span id="export-percent">0%</span>
+            <span id="export-status" class="export-status-message">Processando quadros...</span>
+          </div>
+          <div class="modal-actions" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <button id="btn-download-video" class="btn btn-success full-width hidden">
+              <i data-lucide="download"></i> Baixar e Salvar Vídeo
+            </button>
+            <button id="btn-cancel-export" class="btn btn-danger full-width">Cancelar Exportação</button>
+            <button id="btn-close-export-done" class="btn btn-secondary full-width hidden">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Container -->
+    <div class="app-container">
+      
+      <!-- Top Navigation Header -->
+      <header class="app-header glassmorphic">
+        <div class="header-logo">
+          <i data-lucide="music-3" class="logo-icon"></i>
+          <span class="logo-text">Karaoke Shorts <span class="accent-text">Studio</span></span>
+        </div>
+        <div class="project-info">
+          <span class="badge" id="project-type-badge">Demonstração</span>
+          <span class="project-name" id="project-title-label">Mais Perto Quero Estar</span>
+        </div>
+        <div class="header-actions">
+          <button id="btn-open-demo" class="btn btn-secondary" title="Carrega a música de demonstração clássica">
+            <i data-lucide="refresh-cw"></i>
+            Resetar Demo
+          </button>
+          <button id="btn-trigger-export" class="btn btn-primary glow-effect">
+            <i data-lucide="download"></i>
+            Exportar Vídeo
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Layout Body -->
+      <main class="app-body">
+        
+        <!-- Left Control Panel (Sidebar) -->
+        <section class="editor-sidebar glassmorphic">
+          <div class="sidebar-tabs">
+            <button class="tab-btn active" data-tab="tab-media"><i data-lucide="file-video"></i> Mídia</button>
+            <button class="tab-btn" data-tab="tab-lyrics"><i data-lucide="align-left"></i> Letras & Sinc</button>
+            <button class="tab-btn" data-tab="tab-styles"><i data-lucide="palette"></i> Estilo</button>
+            <button class="tab-btn" data-tab="tab-layers"><i data-lucide="layers"></i> Camadas</button>
+          </div>
+          
+          <div class="sidebar-content">
+            
+            <!-- TAB 1: MEDIA UPLOAD -->
+            <div id="tab-media" class="tab-pane active">
+              <h3>Adicionar Arquivos de Mídia</h3>
+              <p class="tab-desc">Insira a música de fundo e configure o fundo do vídeo.</p>
+              
+              <!-- Video Aspect Ratio -->
+              <div class="setting-section">
+                <h4><i data-lucide="monitor-play"></i> Proporção do Vídeo</h4>
+                <div class="background-options-row">
+                  <button class="bg-opt-btn active" id="ratio-9-16">Vertical (Shorts/9:16)</button>
+                  <button class="bg-opt-btn" id="ratio-16-9">Padrão (YouTube/16:9)</button>
+                </div>
+              </div>
+
+              <!-- Audio Upload -->
+              <div class="setting-section">
+                <h4><i data-lucide="music"></i> Música (Áudio)</h4>
+                <div class="upload-dropzone" id="drop-audio">
+                  <i data-lucide="music-2"></i>
+                  <p>Arraste a música ou clique para buscar (.mp3, .wav, .m4a)</p>
+                  <input type="file" id="input-audio" accept="audio/*" class="hidden-file-input">
+                </div>
+                <div id="audio-file-info" class="file-loaded-info hidden">
+                  <i data-lucide="check-circle" class="success-icon"></i>
+                  <span class="file-name-txt">audio.mp3</span>
+                </div>
+              </div>
+              
+              <!-- Background Choice -->
+              <div class="setting-section">
+                <h4><i data-lucide="image"></i> Fundo do Vídeo</h4>
+                
+                <div class="background-options-row">
+                  <button class="bg-opt-btn active" id="bg-opt-color">Cor</button>
+                  <button class="bg-opt-btn" id="bg-opt-img">Imagem</button>
+                  <button class="bg-opt-btn" id="bg-opt-video">Vídeo</button>
+                </div>
+                
+                <!-- Background Color Selector -->
+                <div class="bg-control-sub" id="bg-sub-color">
+                  <div class="chroma-presets" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <button id="btn-chroma-green" class="btn btn-secondary btn-small full-width" style="border-color: #00FF00; color: #00FF00;"><i data-lucide="square"></i> Verde Chroma</button>
+                    <button id="btn-chroma-blue" class="btn btn-secondary btn-small full-width" style="border-color: #0000FF; color: #0000FF;"><i data-lucide="square"></i> Azul Chroma</button>
+                  </div>
+                  <label for="color-picker-bg">Cor de Fundo Personalizada:</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="color-picker-bg" value="#111827">
+                    <span id="color-hex-bg">#111827</span>
+                  </div>
+                </div>
+                
+                <!-- Background Image Upload -->
+                <div class="bg-control-sub hidden" id="bg-sub-img">
+                  <div class="upload-dropzone small" id="drop-bg-img">
+                    <i data-lucide="image"></i>
+                    <p>Carregar Imagem de Fundo</p>
+                    <input type="file" id="input-bg-img" accept="image/*" class="hidden-file-input">
+                  </div>
+                  <div id="bg-img-info" class="file-loaded-info hidden">
+                    <i data-lucide="check-circle" class="success-icon"></i>
+                    <span class="file-name-txt">fundo.jpg</span>
+                  </div>
+                </div>
+                
+                <!-- Background Video Upload -->
+                <div class="bg-control-sub hidden" id="bg-sub-video">
+                  <div class="upload-dropzone small" id="drop-bg-video">
+                    <i data-lucide="video"></i>
+                    <p>Carregar Vídeo de Fundo</p>
+                    <input type="file" id="input-bg-video" accept="video/*" class="hidden-file-input">
+                  </div>
+                  <div id="bg-video-info" class="file-loaded-info hidden">
+                    <i data-lucide="check-circle" class="success-icon"></i>
+                    <span class="file-name-txt">fundo_video.mp4</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Foreground Layers Upload -->
+              <div class="setting-section">
+                <h4><i data-lucide="plus"></i> Elementos por Cima (Camadas)</h4>
+                <p class="section-desc">Insira imagens e GIFs adicionais que flutuam sobre o fundo.</p>
+                <div class="multi-layer-upload-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  <div class="upload-dropzone small" id="drop-layer-img-1">
+                    <i data-lucide="image-plus"></i>
+                    <p style="font-size: 0.7rem;">Adicionar Elemento 1</p>
+                    <input type="file" id="input-layer-img-1" accept="image/*" class="hidden-file-input">
+                  </div>
+                  <div class="upload-dropzone small" id="drop-layer-img-2">
+                    <i data-lucide="image-plus"></i>
+                    <p style="font-size: 0.7rem;">Adicionar Elemento 2</p>
+                    <input type="file" id="input-layer-img-2" accept="image/*" class="hidden-file-input">
+                  </div>
+                </div>
+                <div class="upload-dropzone small" id="drop-layer-img-3" style="margin-top: 10px;">
+                  <i data-lucide="image-plus"></i>
+                  <p style="font-size: 0.7rem;">Adicionar Mais Elementos...</p>
+                  <input type="file" id="input-layer-img-3" accept="image/*" class="hidden-file-input">
+                </div>
+              </div>
+            </div>
+            
+            <!-- TAB 2: LYRICS & SYNCHRONIZATION -->
+            <div id="tab-lyrics" class="tab-pane">
+              <h3>Letras & Sincronização</h3>
+              
+              <!-- Input Lyrics Panel -->
+              <div id="lyrics-input-panel">
+                <div class="srt-import-card" style="background: rgba(139, 92, 246, 0.08); border: 1px dashed var(--primary); border-radius: 12px; padding: 14px; margin-bottom: 16px; text-align: center;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;">
+                    <i data-lucide="file-text" style="color: #c084fc; width: 16px; height: 16px;"></i>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: #c084fc;">Importar Legenda .SRT Pronta</span>
+                  </div>
+                  <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">Carregue seu arquivo .SRT com todos os tempos já sincronizados.</p>
+                  <button id="btn-import-srt-direct" class="btn btn-secondary full-width" style="border-color: var(--primary); color: #fff; background: rgba(139, 92, 246, 0.25);">
+                    <i data-lucide="upload"></i> Escolher Arquivo .SRT
+                  </button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                  <div style="height: 1px; flex: 1; background: var(--border-glass);"></div>
+                  <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Ou digite/cole a letra:</span>
+                  <div style="height: 1px; flex: 1; background: var(--border-glass);"></div>
+                </div>
+
+                <p class="tab-desc">Cole a letra da música abaixo. Separe as frases pulando linha.</p>
+                <textarea id="textarea-lyrics" placeholder="Insira a letra aqui...&#10;Exemplo:&#10;Mais perto quero estar&#10;Meu Deus de Ti"></textarea>
+                
+                <div class="lyrics-actions">
+                  <button id="btn-parse-lyrics" class="btn btn-primary full-width">
+                    <i data-lucide="cpu"></i> Preparar Letras para Sinc
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Active Synchronization HUD -->
+              <div id="lyrics-sync-hud" class="hidden">
+                <div class="sync-status-indicator">
+                  <div class="pulse-indicator"></div>
+                  <span>Modo Sincronização Ativo</span>
+                </div>
+                
+                <div class="sync-word-prompter">
+                  <div class="prompter-desc">Frase Atual:</div>
+                  <div id="sync-current-word" class="current-word-display">Mais perto quero estar...</div>
+                  <div id="sync-next-words" class="next-words-display">Próximas frases...</div>
+                </div>
+                
+                <div class="sync-instructions">
+                  <p><strong>Como sincronizar:</strong></p>
+                  <ul>
+                    <li>Aperte a tecla <kbd>Espaço</kbd> (ou clique no botão abaixo) para marcar o início de cada frase no ritmo da música.</li>
+                    <li>Aperte a tecla <kbd>Enter</kbd> para encerrar a frase atual caso haja uma pausa longa antes da próxima.</li>
+                  </ul>
+                </div>
+                
+                <div class="sync-buttons">
+                  <button id="btn-sync-tap" class="btn btn-primary btn-large btn-sync-tap glow-effect">
+                    <i data-lucide="hand"></i> MARCAR FRASE [Espaço]
+                  </button>
+                  <button id="btn-sync-line-end" class="btn btn-secondary">
+                    <i data-lucide="corner-down-left"></i> Fim de Frase [Enter]
+                  </button>
+                  <button id="btn-sync-cancel" class="btn btn-danger">
+                    <i data-lucide="x-circle"></i> Cancelar
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Timed Words Grid Editor -->
+              <div id="lyrics-editor-panel" class="hidden">
+                <div class="editor-header-row">
+                  <h4>Letras Sincronizadas</h4>
+                  <div class="editor-header-actions" style="display: flex; gap: 8px;">
+                    <button id="btn-import-srt" class="btn btn-secondary btn-small">
+                      <i data-lucide="upload"></i> Importar SRT
+                    </button>
+                    <button id="btn-export-srt" class="btn btn-secondary btn-small">
+                      <i data-lucide="download"></i> Exportar SRT
+                    </button>
+                    <button id="btn-resync" class="btn btn-secondary btn-small">
+                      <i data-lucide="rotate-ccw"></i> Re-sincronizar
+                    </button>
+                  </div>
+                </div>
+                <input type="file" id="input-import-srt" accept=".srt" style="display: none;" />
+                <p class="section-desc">Ajuste os tempos de início (Iníc) e fim (Fim) em segundos de cada frase, caso necessário.</p>
+                <div class="table-container">
+                  <table id="table-lyrics-timing">
+                    <thead>
+                      <tr>
+                        <th>Frase</th>
+                        <th>Iníc (s)</th>
+                        <th>Fim (s)</th>
+                        <th>Ajuste</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-lyrics-body">
+                      <!-- Populated programmatically -->
+                    </tbody>
+                  </table>
+                </div>
+                
+                <!-- Global Timing Offset -->
+                <div class="setting-section" style="margin-top: 16px; padding: 14px; background: rgba(139,92,246,0.08); border-radius: 12px; border: 1px solid rgba(139,92,246,0.2);">
+                  <div class="slider-label-row">
+                    <label style="font-size: 0.8rem; font-weight: 600;">⏱ Compensação de Atraso:</label>
+                    <span id="label-timing-offset" style="font-weight: 700; color: var(--primary);">0.0s</span>
+                  </div>
+                  <input type="range" id="range-timing-offset" min="-1.0" max="1.0" step="0.05" value="0">
+                  <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">Mova para negativo (ex: -0.3s) para adiantar a legenda e compensar o tempo de reação durante a gravação. Ajuste até sincronizar perfeitamente.</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- TAB 3: STYLES -->
+            <div id="tab-styles" class="tab-pane">
+              <h3>Estilo da Legenda</h3>
+              <p class="tab-desc">Personalize a tipografia, cores e animação de karaokê.</p>
+              
+              <!-- Font selector -->
+              <div class="setting-section">
+                <div class="form-group">
+                  <label for="select-font-family">Fonte da Legenda (30 Fontes Modernas):</label>
+                  <select id="select-font-family" class="font-select">
+                    <!-- Populated programmatically -->
+                  </select>
+                </div>
+                
+                <div class="font-weight-toggles">
+                  <button class="style-toggle" id="toggle-bold" title="Negrito"><i data-lucide="bold"></i></button>
+                  <button class="style-toggle" id="toggle-italic" title="Itálico"><i data-lucide="italic"></i></button>
+                </div>
+                
+                <div class="form-group" style="margin-top: 12px;">
+                  <label for="select-text-align">Alinhamento da Legenda:</label>
+                  <select id="select-text-align">
+                    <option value="center">Centralizado (Padrão)</option>
+                    <option value="left">Esquerda</option>
+                    <option value="right">Direita</option>
+                    <option value="justify">Justificado</option>
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Size and positioning -->
+              <div class="setting-section">
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-font-size">Tamanho da Fonte:</label>
+                    <span id="label-font-size">70px</span>
+                  </div>
+                  <input type="range" id="range-font-size" min="30" max="150" value="70">
+                </div>
+                
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-text-y">Posição Vertical (Y):</label>
+                    <span id="label-text-y">75%</span>
+                  </div>
+                  <input type="range" id="range-text-y" min="20" max="95" value="75">
+                </div>
+              </div>
+              
+              <!-- Colors -->
+              <div class="setting-section">
+                <h4>Cores & Efeitos</h4>
+                
+                <div class="color-picker-grid">
+                  <div class="color-item">
+                    <label for="color-picker-text">Cor Base:</label>
+                    <input type="color" id="color-picker-text" value="#ffffff">
+                  </div>
+                  
+                  <div class="color-item">
+                    <label for="color-picker-highlight">Cor Ativa (Karaokê):</label>
+                    <input type="color" id="color-picker-highlight" value="#f43f5e">
+                  </div>
+                  
+                  <div class="color-item">
+                    <label for="color-picker-outline">Cor da Borda:</label>
+                    <input type="color" id="color-picker-outline" value="#000000">
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <div class="slider-label-row">
+                    <label for="range-outline-width">Largura da Borda:</label>
+                    <span id="label-outline-width">8px</span>
+                  </div>
+                  <input type="range" id="range-outline-width" min="0" max="25" value="8">
+                </div>
+              </div>
+              
+              <!-- Animation Style -->
+              <div class="setting-section">
+                <div class="form-group">
+                  <label for="select-anim-type">Tipo de Animação Karaokê:</label>
+                  <select id="select-anim-type">
+                    <option value="sweep">Varredura de Cor (Spotify Style - Suave)</option>
+                    <option value="word">Destaque Palavra por Palavra (Zoom/Pulso)</option>
+                    <option value="bounce">Bolinha Saltitante Clássica (Bouncing Ball)</option>
+                    <option value="scroll">Rolagem Vertical (Estilo Star Wars)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- TAB 4: LAYERS -->
+            <div id="tab-layers" class="tab-pane">
+              <h3>Camadas do Projeto</h3>
+              <p class="tab-desc">Controle a ordem de empilhamento, opacidade e tempo de aparecimento dos elementos visuais.</p>
+              
+              <div id="layers-empty-state" class="empty-state">
+                <i data-lucide="layers"></i>
+                <p>Nenhuma imagem extra adicionada.</p>
+                <p class="section-desc">Insira imagens na aba "Mídia" para gerenciar as camadas aqui.</p>
+              </div>
+              
+              <div id="layers-list-container" class="hidden">
+                <div class="layers-list" id="layers-list-items">
+                  <!-- Populated programmatically -->
+                </div>
+                
+                <!-- Selected Layer Settings Detail -->
+                <div id="selected-layer-settings-box" class="layer-detail-settings hidden">
+                  <h4 id="layer-detail-title">Configurações da Camada</h4>
+                  
+                  <div class="form-group">
+                    <div class="slider-label-row">
+                      <label for="range-layer-opacity">Opacidade:</label>
+                      <span id="label-layer-opacity">100%</span>
+                    </div>
+                    <input type="range" id="range-layer-opacity" min="0" max="1" step="0.05" value="1">
+                  </div>
+                  
+                  <div class="timing-range-inputs">
+                    <div class="form-group">
+                      <label for="num-layer-start">Início Exibição (s):</label>
+                      <input type="number" id="num-layer-start" min="0" step="0.5" value="0">
+                    </div>
+                    <div class="form-group">
+                      <label for="num-layer-end">Fim Exibição (s):</label>
+                      <input type="number" id="num-layer-end" min="0" step="0.5" value="30">
+                    </div>
+                  </div>
+                  
+                  <div class="layer-action-buttons">
+                    <button id="btn-layer-order-up" class="btn btn-secondary btn-small" title="Mover para frente">
+                      <i data-lucide="chevron-up"></i> Trazer para Frente
+                    </button>
+                    <button id="btn-layer-order-down" class="btn btn-secondary btn-small" title="Mover para trás">
+                      <i data-lucide="chevron-down"></i> Enviar para Trás
+                    </button>
+                  </div>
+                  
+                  <button id="btn-layer-delete" class="btn btn-danger full-width">
+                    <i data-lucide="trash-2"></i> Excluir Elemento
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Center Section: Interactive Video Viewport -->
+        <section class="editor-viewport">
+          <div class="viewport-toolbar" style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 20; background: var(--bg-panel); padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border-glass); display: flex; gap: 10px; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Zoom:</span>
+            <button class="btn btn-secondary btn-small zoom-btn active" id="btn-zoom-fit">Padrão</button>
+            <button class="btn btn-secondary btn-small zoom-btn" id="btn-zoom-mid">Médio</button>
+            <button class="btn btn-secondary btn-small zoom-btn" id="btn-zoom-full">Full (Preencher)</button>
+          </div>
+          
+          <div class="canvas-container-outer" id="main-canvas-container">
+            <!-- 9:16 Vertical Video Frame Aspect -->
+            <div class="vertical-video-aspect-frame zoom-fit" id="aspect-frame">
+              <div class="video-canvas-wrapper">
+                <canvas id="preview-canvas" width="360" height="640"></canvas>
+              </div>
+              
+              <!-- Video Layer Info Overlay for Selection Helper -->
+              <div class="canvas-active-selection-overlay" id="selection-status-badge">
+                <i data-lucide="info"></i> Clique e arraste elementos na tela para redimensionar ou mover
+              </div>
+            </div>
+          </div>
+        </section>
+        
+      </main>
+
+      <!-- Bottom Panel: Playback Controls and Timeline -->
+      <footer class="app-timeline glassmorphic">
+        
+        <!-- Controls Header -->
+        <div class="timeline-controls">
+          <div class="playback-buttons">
+            <button id="btn-play-pause" class="btn-play" title="Play / Pause">
+              <i data-lucide="play" id="play-icon"></i>
+            </button>
+            <button id="btn-stop" class="btn-stop" title="Parar">
+              <i data-lucide="square"></i>
+            </button>
+          </div>
+          
+          <div class="playback-timer">
+            <span id="time-current">00:00</span>
+            <span class="timer-divider">/</span>
+            <span id="time-duration">00:32</span>
+          </div>
+          
+          <div class="volume-slider-wrapper">
+            <i data-lucide="volume-2" id="volume-icon"></i>
+            <input type="range" id="range-volume" min="0" max="1" step="0.05" value="0.8" title="Volume">
+          </div>
+        </div>
+        
+        <!-- Main Timeline Waveform & Track -->
+        <div class="timeline-scroll-area">
+          <div class="timeline-tracks-container">
+            <!-- Audio Track row -->
+            <div class="timeline-row audio-track-row">
+              <div class="track-label"><i data-lucide="music"></i> Áudio</div>
+              <div class="track-timeline-view">
+                <canvas id="waveform-canvas" height="60"></canvas>
+              </div>
+            </div>
+            
+            <!-- Lyrics Track row -->
+            <div class="timeline-row lyrics-track-row">
+              <div class="track-label"><i data-lucide="align-left"></i> Legenda</div>
+              <div class="track-timeline-view" id="timeline-lyrics-track">
+                <!-- Highlighted lyric bars populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <!-- Main JS file module inclusion -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
