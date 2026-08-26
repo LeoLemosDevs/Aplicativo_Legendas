@@ -2,6 +2,15 @@
 
 Todas as alterações notáveis deste projeto estão documentadas neste arquivo.
 
+## [2.1.0] - 2026-08-26 (Versão tudo funcionando)
+### 💎 Estabilidade Total de Exportação, Renderização & Chroma Key
+- **🛡️ Renderizador e Processador Chroma Key Ultra-Resiliente:** Proteção total contra dimensões nulas em elementos multimídia durante a renderização quadro a quadro em alta resolução (1080p e 4K).
+- **⏱️ Motor de Exportação com Duplo Sincronismo:** Sincronização precisa de quadros através do relógio de áudio e do relógio de renderização contínuo, prevenindo travamentos ou finalizações prematuras.
+- **🎬 Gravação em Fatias Contínuas (Chunks de 250ms):** Pipeline de MediaRecorder com fallback dinâmico de codecs (VP9, H.264, MP4, WebM) e buffer contínuo de pacotes.
+- **🎯 Todas as Funções Integradas:** Legendas sincronizadas com destaque da frase ativa, corte de áudio (trim), espectros sonoros reativos (Trap Nation, YouTube Columns, Neon), chroma key em vídeos e imagens, e linha do tempo multitrack totalmente operacional.
+
+---
+
 ## [2.0.0] - 2026-08-26 (Versão 2.0 Cromakey)
 ### 🎬 Efeitos de Chroma Key em Tempo Real & Controle Global de Camadas
 - **Camadas com Chroma Key (Fundo Transparente):** Suporte para carregar vídeos (`.mp4`, `.webm`) ou imagens/GIFs com tela verde (ex: animação de "Inscreva-se", "Like", "Compartilhe", raios, fumaça e efeitos visuais).

@@ -4,6 +4,14 @@ Registro detalhado das principais evoluções, correções de bugs e novos recur
 
 ---
 
+## 🚀 Versão tudo funcionando (v2.1.0) — *Estabilidade e Renderização 100%*
+- **🛡️ Processador de Chroma Key Ultra-Seguro:** Correção e blindagem contra erros de dimensão durante a exportação de elementos e vídeos com tela verde/azul em resoluções 1080p e 4K.
+- **⏱️ Motor de Exportação com Duplo Sincronismo:** Renderização frame a frame sem interrupções prematuras, sincronizada perfeitamente com o áudio.
+- **🎬 Buffer Contínuo de Gravação (250ms chunks):** Empacotamento robusto de vídeo com seleção e fallback automático de codecs (`VP9`, `H.264`, `MP4`, `WebM`).
+- **💎 Sistema Completo 100% Operacional:** Todas as ferramentas de legenda sincronizada, espectro sonoro, camadas de imagens e vídeos, corte de áudio e exportação de vídeo/SRT operando com máxima estabilidade.
+
+---
+
 ## 🚀 Versão 2.0 Cromakey (v2.0.0) — *Chroma Key em Tempo Real & Camadas Globais*
 - **🎬 Vídeos e Overlays com Chroma Key:** Suporte nativo para vídeos (`.mp4`, `.webm`) ou imagens/GIFs com fundo verde/azul (ex: botões de "Inscreva-se", "Like", "Compartilhe", fumaça, raios e efeitos visuais).
 - **🟢 Processador de Chroma Key em Tempo Real:** Motor de remoção de fundo com tolerância (5% a 80%), suavidade de borda (feathering) e presets rápidos de Verde (`#00FF00`) e Azul (`#0000FF`).
