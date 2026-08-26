@@ -2,6 +2,15 @@
 
 Todas as alterações notáveis deste projeto estão documentadas neste arquivo.
 
+## [3.0.0] - 2026-08-26 (Versão 3.0)
+### 🚀 Salvar/Abrir Projetos, Filtros de Vídeo, Posições X/Y & Textos Animados
+- **💾 Sistema de Salvar e Abrir Projetos (.kproject / JSON):** Exportação e importação completa de todo o estado da edição (legendas SRT, áudio trim, camadas de vídeo/imagem/espectro/texto, posições, filtros e estilos).
+- **✨ Filtros & Efeitos de Vídeo em Tempo Real:** Nova aba dedicada com presets (*Vintage Retrô, Cyberpunk Neon, Cinema Noir, Golden Hour, Sci-Fi, VHS 90s, Ultra Contraste*) e controles de Vinheta Escura, Brilho, Contraste, Saturação, Sépia, Hue Rotate e Blur.
+- **📐 Controles Numéricos de Posição & Alinhamento:** Ajuste fino de `X (px)`, `Y (px)`, `Largura (px)` e `Altura (px)` em todas as camadas, com botões de alinhamento rápido (*Centro H, Centro V, Topo, Base, Esquerda, Direita*).
+- **🔤 Camadas de Texto Personalizado com Animações:** Suporte a textos com Google Fonts, cores, bordas, negrito, itálico, caixa alta e 7 animações de entrada (*Fade, Slide Up, Slide Down, Slide Left, Slide Right, Zoom In, Bounce*) e saída com controle de duração.
+
+---
+
 ## [2.1.0] - 2026-08-26 (Versão tudo funcionando)
 ### 💎 Estabilidade Total de Exportação, Renderização & Chroma Key
 - **🛡️ Renderizador e Processador Chroma Key Ultra-Resiliente:** Proteção total contra dimensões nulas em elementos multimídia durante a renderização quadro a quadro em alta resolução (1080p e 4K).

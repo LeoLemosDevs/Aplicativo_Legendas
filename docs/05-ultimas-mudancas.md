@@ -4,6 +4,14 @@ Registro detalhado das principais evoluções, correções de bugs e novos recur
 
 ---
 
+## 🚀 Versão 3.0 (v3.0.0) — *Projetos (.kproject), Filtros de Vídeo, Posições X/Y & Textos Animados*
+- **💾 Salvar e Abrir Projetos (.kproject / JSON):** Salve suas edições em arquivos de projeto `.kproject` e recarregue a qualquer momento restaurando todas as configurações, tempos, camadas, efeitos e legendas.
+- **✨ Filtros & Efeitos de Vídeo em Tempo Real:** Nova aba *Efeitos* com 8 presets cinematográficos, vinheta escura personalizável, ajustes finos de brilho, contraste, saturação, sépia, matiz e blur.
+- **📐 Controles de Posição Numérica X/Y e Alinhamento:** Posicionamento de camadas por digitação de coordenadas e 6 botões de alinhamento instantâneo.
+- **🔤 Camadas de Texto Personalizado com Animações:** Crie caixas de texto estilizadas com Google Fonts, cores, bordas, sombras e animações de entrada/saída ajustáveis pelo mouse.
+
+---
+
 ## 🚀 Versão tudo funcionando (v2.1.0) — *Estabilidade e Renderização 100%*
 - **🛡️ Processador de Chroma Key Ultra-Seguro:** Correção e blindagem contra erros de dimensão durante a exportação de elementos e vídeos com tela verde/azul em resoluções 1080p e 4K.
 - **⏱️ Motor de Exportação com Duplo Sincronismo:** Renderização frame a frame sem interrupções prematuras, sincronizada perfeitamente com o áudio.
