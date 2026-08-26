@@ -147,6 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const colorSpectrum2 = document.getElementById('color-spectrum-2');
   const rangeSpectrumSensitivity = document.getElementById('range-spectrum-sensitivity');
   const labelSpectrumSensitivity = document.getElementById('label-spectrum-sensitivity');
+  const rangeSpectrumBeatPunch = document.getElementById('range-spectrum-beat-punch');
+  const labelSpectrumBeatPunch = document.getElementById('label-spectrum-beat-punch');
   const rangeSpectrumRadius = document.getElementById('range-spectrum-radius');
   const labelSpectrumRadius = document.getElementById('label-spectrum-radius');
   const groupSpectrumRadius = document.getElementById('group-spectrum-radius');
@@ -940,6 +942,8 @@ document.addEventListener('DOMContentLoaded', () => {
         colorSpectrum2.value = selectedLayer.color2 || '#d946ef';
         rangeSpectrumSensitivity.value = selectedLayer.sensitivity || 1.3;
         labelSpectrumSensitivity.textContent = (selectedLayer.sensitivity || 1.3).toFixed(1) + 'x';
+        rangeSpectrumBeatPunch.value = selectedLayer.beatPunch !== undefined ? selectedLayer.beatPunch : 2.2;
+        labelSpectrumBeatPunch.textContent = (selectedLayer.beatPunch !== undefined ? selectedLayer.beatPunch : 2.2).toFixed(1) + 'x';
         rangeSpectrumRadius.value = selectedLayer.radius || 120;
         labelSpectrumRadius.textContent = (selectedLayer.radius || 120) + 'px';
         rangeSpectrumBars.value = selectedLayer.barCount || 64;
@@ -1071,6 +1075,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
         if (layer && layer.type === 'spectrum') {
           layer.sensitivity = val;
+          canvasEditor.needsRedraw = true;
+        }
+      }
+    });
+  }
+
+  if (rangeSpectrumBeatPunch) {
+    rangeSpectrumBeatPunch.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      labelSpectrumBeatPunch.textContent = val.toFixed(1) + 'x';
+      if (canvasEditor.selectedLayerId) {
+        const layer = canvasEditor.layers.find(l => l.id === canvasEditor.selectedLayerId);
+        if (layer && layer.type === 'spectrum') {
+          layer.beatPunch = val;
           canvasEditor.needsRedraw = true;
         }
       }

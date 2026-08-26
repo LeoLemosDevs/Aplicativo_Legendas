@@ -171,6 +171,7 @@ export class CanvasEditor {
       isGradient: customProps.isGradient !== undefined ? customProps.isGradient : true,
       glow: customProps.glow !== undefined ? customProps.glow : 16,
       sensitivity: customProps.sensitivity || 1.3,
+      beatPunch: customProps.beatPunch !== undefined ? customProps.beatPunch : 2.2,
       barCount: customProps.barCount || 64,
       barWidth: customProps.barWidth || 5,
       radius: customProps.radius || 120,
@@ -784,6 +785,9 @@ export class CanvasEditor {
     }
 
     switch (type) {
+      case 'youtube-columns': // YouTube Music Channels Columns (New User Photo)
+        this.drawYouTubeColumns(ctx, layer, freqData);
+        break;
       case 'mirror-bars': // Symmetrical Center Bars (Photos 2 & 5)
         this.drawMirrorBars(ctx, layer, freqData);
         break;
@@ -793,7 +797,7 @@ export class CanvasEditor {
       case 'soundwave-dense': // Dense Studio Soundwave Field (Photo 4)
         this.drawSoundwaveDense(ctx, layer, freqData);
         break;
-      case 'circular-bars': // Trap Nation Circular with Bass Pump
+      case 'circular-bars': // Trap Nation Circular with Bass Spikes
         this.drawCircularBars(ctx, layer, freqData);
         break;
       case 'circular-wave': // Radial Neon Wave
@@ -806,10 +810,47 @@ export class CanvasEditor {
         this.drawRadialDots(ctx, layer, freqData);
         break;
       default:
-        this.drawMirrorBars(ctx, layer, freqData);
+        this.drawYouTubeColumns(ctx, layer, freqData);
     }
 
     ctx.restore();
+  }
+
+  // MODEL: YouTube Music Columns (Exact Match to User Uploaded Picture)
+  drawYouTubeColumns(ctx, layer, freqData) {
+    const barCount = layer.barCount || 48;
+    const spacing = Math.max(3, (layer.barWidth || 5) * 0.5);
+    const totalSpacing = (barCount - 1) * spacing;
+    const barWidth = Math.max(3, (layer.width - totalSpacing) / barCount);
+    const sensitivity = layer.sensitivity || 1.3;
+    const beatPunch = layer.beatPunch !== undefined ? layer.beatPunch : 2.2;
+    const maxHeight = layer.height * 0.92;
+    const byBottom = layer.y + layer.height - 4;
+
+    const grad = this.createSpectrumGradient(ctx, layer.x, layer.y, layer.x + layer.width, layer.y, layer);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = 'round';
+
+    for (let i = 0; i < barCount; i++) {
+      const norm = i / barCount;
+      const binIdx = Math.floor(norm * 52);
+      let val = (freqData[binIdx] || 0) / 255;
+      
+      // Punchy non-linear spikes for YouTube style high columns
+      if (val > 0.25) {
+        val = Math.pow(val, 1.35) * (1 + (beatPunch - 1.0) * 0.6);
+      }
+      
+      const barH = Math.max(8, val * maxHeight * sensitivity);
+      const bx = layer.x + i * (barWidth + spacing) + barWidth / 2;
+      const byTop = byBottom - barH;
+
+      ctx.beginPath();
+      ctx.moveTo(bx, byBottom);
+      ctx.lineTo(bx, byTop);
+      ctx.stroke();
+    }
   }
 
   // MODEL 1: Symmetrical Center Waveform Bars (Matching Photos 2 & 5)
@@ -819,6 +860,7 @@ export class CanvasEditor {
     const totalSpacing = (barCount - 1) * spacing;
     const barWidth = Math.max(2, (layer.width - totalSpacing) / barCount);
     const sensitivity = layer.sensitivity || 1.3;
+    const beatPunch = layer.beatPunch !== undefined ? layer.beatPunch : 2.2;
     const maxHeight = layer.height * 0.9;
     const centerY = layer.y + layer.height / 2;
 
@@ -828,10 +870,13 @@ export class CanvasEditor {
     ctx.lineCap = 'round';
 
     for (let i = 0; i < barCount; i++) {
-      // Dynamic frequency curve
       const norm = i / barCount;
       const binIdx = Math.floor(Math.abs(Math.sin(norm * Math.PI)) * 50);
-      const val = (freqData[binIdx] || 0) / 255;
+      let val = (freqData[binIdx] || 0) / 255;
+      
+      if (val > 0.25) {
+        val = Math.pow(val, 1.3) * (1 + (beatPunch - 1.0) * 0.5);
+      }
       
       const barH = Math.max(6, val * maxHeight * sensitivity);
       const bx = layer.x + i * (barWidth + spacing) + barWidth / 2;
@@ -850,6 +895,7 @@ export class CanvasEditor {
     const totalSpacing = (barCount - 1) * spacing;
     const barWidth = Math.max(2, (layer.width - totalSpacing) / barCount);
     const sensitivity = layer.sensitivity || 1.3;
+    const beatPunch = layer.beatPunch !== undefined ? layer.beatPunch : 2.2;
     const maxHeight = layer.height * 0.88;
 
     const grad = this.createSpectrumGradient(ctx, layer.x, layer.y, layer.x + layer.width, layer.y, layer);
@@ -860,7 +906,11 @@ export class CanvasEditor {
     for (let i = 0; i < barCount; i++) {
       const binNormalized = i / barCount;
       const binIdx = Math.floor(binNormalized * 56);
-      const val = (freqData[binIdx] || 0) / 255;
+      let val = (freqData[binIdx] || 0) / 255;
+      
+      if (val > 0.25) {
+        val = Math.pow(val, 1.3) * (1 + (beatPunch - 1.0) * 0.5);
+      }
       
       const barH = Math.max(8, val * maxHeight * sensitivity);
       const bx = layer.x + i * (barWidth + spacing) + barWidth / 2;
@@ -894,7 +944,6 @@ export class CanvasEditor {
       const binIdx = Math.floor(Math.abs(Math.sin(norm * Math.PI)) * 48);
       const val = (freqData[binIdx] || 0) / 255;
       
-      // Organic high frequency studio jitter
       const jitter = Math.sin(i * 13.5 + now * 12) * 0.15;
       const barH = Math.max(4, (val * 0.85 + jitter) * maxHeight * sensitivity);
       const bx = layer.x + i * stepX;
@@ -906,13 +955,16 @@ export class CanvasEditor {
     }
   }
 
-  // MODEL 4: Trap Nation Circular Bars with Bass Pump
+  // MODEL 4: Trap Nation Circular Bars with Bass Spikes & Explosive Punch
   drawCircularBars(ctx, layer, freqData) {
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
+    const beatPunch = layer.beatPunch !== undefined ? layer.beatPunch : 2.2;
     
-    const bass = ((freqData[0] || 0) + (freqData[1] || 0) + (freqData[2] || 0) + (freqData[3] || 0)) / (4 * 255);
-    const pumpRadius = (layer.radius || 120) * (1 + bass * 0.16);
+    // Non-linear bass calculation for energetic kick response
+    const rawBass = ((freqData[0] || 0) + (freqData[1] || 0) + (freqData[2] || 0) + (freqData[3] || 0)) / (4 * 255);
+    const bass = Math.pow(rawBass, 1.3) * (0.8 + beatPunch * 0.6);
+    const pumpRadius = (layer.radius || 120) * (1 + bass * 0.25);
     
     const barCount = layer.barCount || 64;
     const barWidth = layer.barWidth || 5;
@@ -930,7 +982,12 @@ export class CanvasEditor {
       const halfCount = barCount / 2;
       const binNormalized = (i < halfCount ? i : (barCount - i)) / halfCount;
       const binIdx = Math.floor(binNormalized * 50);
-      const val = (freqData[binIdx] || 0) / 255;
+      let val = (freqData[binIdx] || 0) / 255;
+      
+      // Dynamic spike explosions on high frequency bursts / bass hits
+      if (val > 0.28) {
+        val = Math.pow(val, 1.4) * (1 + bass * (beatPunch * 0.95));
+      }
       
       const barHeight = Math.max(6, val * maxBarLen * sensitivity);
       
@@ -959,7 +1016,7 @@ export class CanvasEditor {
       ctx.fillStyle = 'rgba(10, 15, 30, 0.85)';
       ctx.fill();
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 3 + bass * 3;
+      ctx.lineWidth = 3 + bass * 4;
       ctx.stroke();
 
       ctx.beginPath();
