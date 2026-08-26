@@ -2,7 +2,7 @@
 
 Todas as alterações notáveis deste projeto estão documentadas neste arquivo.
 
-## [1.7.0] - 2026-08-26 (Versão 1.7 - Chroma Key & Camadas Globais)
+## [2.0.0] - 2026-08-26 (Versão 2.0 Cromakey)
 ### 🎬 Efeitos de Chroma Key em Tempo Real & Controle Global de Camadas
 - **Camadas com Chroma Key (Fundo Transparente):** Suporte para carregar vídeos (`.mp4`, `.webm`) ou imagens/GIFs com tela verde (ex: animação de "Inscreva-se", "Like", "Compartilhe", raios, fumaça e efeitos visuais).
 - **Processador de Remoção de Fundo em Tempo Real:** Motor com tolerância ajustável (5% a 80%), suavidade de borda (feathering) e presets rápidos de 🟢 Verde (`#00FF00`) e 🔵 Azul (`#0000FF`) com seletor livre de cor.

@@ -4,6 +4,22 @@ Registro detalhado das principais evoluções, correções de bugs e novos recur
 
 ---
 
+## 🚀 Versão 2.0 Cromakey (v2.0.0) — *Chroma Key em Tempo Real & Camadas Globais*
+- **🎬 Vídeos e Overlays com Chroma Key:** Suporte nativo para vídeos (`.mp4`, `.webm`) ou imagens/GIFs com fundo verde/azul (ex: botões de "Inscreva-se", "Like", "Compartilhe", fumaça, raios e efeitos visuais).
+- **🟢 Processador de Chroma Key em Tempo Real:** Motor de remoção de fundo com tolerância (5% a 80%), suavidade de borda (feathering) e presets rápidos de Verde (`#00FF00`) e Azul (`#0000FF`).
+- **🖼️ Inserção Direta e Painel Unificado:** Botões dedicados na aba Camadas para adicionar fotos, vídeos com chroma key e espectros com 1 clique.
+- **⚡ Sincronização Imediata com a Timeline:** Qualquer elemento adicionado entra automaticamente na timeline multitrack para ajuste de entrada, saída e duração pelo mouse.
+
+---
+
+## 🚀 Versão 1.6 (v1.6.0) — *Espectro de Áudio Reativo & Modelos Profissionais*
+- **📶 Colunas do YouTube (Trap / EDM):** Visualizador de colunas com pontas arredondadas e picos energéticos.
+- **💥 Explosão de Pontas & Graves no Trap Nation:** Spikes reativos no ritmo dos kicks e graves, com slider de *Impacto da Batida (Pontas & Graves)* de `1.0x` a `4.5x`.
+- **📊 7 Estilos de Espectro:** Onda Espelhada Central, Equalizador Neon, Campo de Onda de Estúdio, Trap Nation Circular, Onda Radial, Linha Fluida e Anel de Partículas.
+- **🌈 Presets de Cores:** Multicolor Rainbow, Fire & Sun, Dourado Studio Glow, Electric Blue, Cyberpunk Neon e Trap Red.
+
+---
+
 ## 🚀 Versão 1.5 (v1.5.0) — *Edição Não-Linear & Multitrack*
 - **✂️ Sistema de Corte de Áudio (Trim):** Implementado suporte a definição de trecho inicial (`trimStart`) e final (`trimEnd`), permitindo cortar músicas de qualquer duração para o formato Shorts (ex: 60s).
 - **🎞️ Trilha de Camadas na Timeline:** Cada elemento, imagem ou GIF inserido agora é exibido como um bloco interativo na timeline com suporte a arrastar início, fim e corpo pelo mouse.
