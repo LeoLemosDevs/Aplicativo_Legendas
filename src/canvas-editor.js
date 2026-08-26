@@ -498,53 +498,66 @@ export class CanvasEditor {
 
   // Real-time Chroma Key Pixel Processing (Green/Blue Screen Removal)
   applyChromaKey(ctx, element, x, y, width, height, layer) {
-    if (!this.chromaCanvas) {
-      this.chromaCanvas = document.createElement('canvas');
-      this.chromaCtx = this.chromaCanvas.getContext('2d', { willReadFrequently: true });
-    }
-    
-    // Scale processing canvas
-    const maxProcessW = 640;
-    let procW = element.videoWidth || element.naturalWidth || element.width || width;
-    let procH = element.videoHeight || element.naturalHeight || element.height || height;
-    if (procW > maxProcessW) {
-      procH = Math.round(procH * (maxProcessW / procW));
-      procW = maxProcessW;
-    }
-    
-    if (this.chromaCanvas.width !== procW || this.chromaCanvas.height !== procH) {
-      this.chromaCanvas.width = procW;
-      this.chromaCanvas.height = procH;
-    }
-
-    this.chromaCtx.drawImage(element, 0, 0, procW, procH);
-    const imgData = this.chromaCtx.getImageData(0, 0, procW, procH);
-    const data = imgData.data;
-
-    const hex = (layer.chromaColor || '#00ff00').replace('#', '');
-    const keyR = parseInt(hex.substring(0, 2), 16) || 0;
-    const keyG = parseInt(hex.substring(2, 4), 16) || 255;
-    const keyB = parseInt(hex.substring(4, 6), 16) || 0;
-
-    const tol = (layer.chromaTolerance !== undefined ? layer.chromaTolerance : 0.35) * 441.67;
-    const smooth = (layer.chromaSmoothness !== undefined ? layer.chromaSmoothness : 0.1) * 150;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      const dist = Math.sqrt((r - keyR) ** 2 + (g - keyG) ** 2 + (b - keyB) ** 2);
-      if (dist < tol) {
-        data[i + 3] = 0; // completely transparent
-      } else if (dist < tol + smooth && smooth > 0) {
-        const alpha = (dist - tol) / smooth;
-        data[i + 3] = Math.floor(data[i + 3] * alpha);
+    if (!element) return;
+    try {
+      if (!this.chromaCanvas) {
+        this.chromaCanvas = document.createElement('canvas');
+        this.chromaCtx = this.chromaCanvas.getContext('2d', { willReadFrequently: true });
       }
-    }
+      
+      const maxProcessW = 640;
+      let procW = element.videoWidth || element.naturalWidth || element.width || width || 320;
+      let procH = element.videoHeight || element.naturalHeight || element.height || height || 180;
+      
+      if (procW <= 0 || procH <= 0) {
+        ctx.drawImage(element, x, y, width, height);
+        return;
+      }
 
-    this.chromaCtx.putImageData(imgData, 0, 0);
-    ctx.drawImage(this.chromaCanvas, x, y, width, height);
+      if (procW > maxProcessW) {
+        procH = Math.max(1, Math.round(procH * (maxProcessW / procW)));
+        procW = maxProcessW;
+      }
+      
+      if (this.chromaCanvas.width !== procW || this.chromaCanvas.height !== procH) {
+        this.chromaCanvas.width = procW;
+        this.chromaCanvas.height = procH;
+      }
+
+      this.chromaCtx.drawImage(element, 0, 0, procW, procH);
+      const imgData = this.chromaCtx.getImageData(0, 0, procW, procH);
+      const data = imgData.data;
+
+      const hex = (layer.chromaColor || '#00ff00').replace('#', '');
+      const keyR = parseInt(hex.substring(0, 2), 16) || 0;
+      const keyG = parseInt(hex.substring(2, 4), 16) || 255;
+      const keyB = parseInt(hex.substring(4, 6), 16) || 0;
+
+      const tol = (layer.chromaTolerance !== undefined ? layer.chromaTolerance : 0.35) * 441.67;
+      const smooth = (layer.chromaSmoothness !== undefined ? layer.chromaSmoothness : 0.1) * 150;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        const dist = Math.sqrt((r - keyR) ** 2 + (g - keyG) ** 2 + (b - keyB) ** 2);
+        if (dist < tol) {
+          data[i + 3] = 0; // completely transparent
+        } else if (dist < tol + smooth && smooth > 0) {
+          const alpha = (dist - tol) / smooth;
+          data[i + 3] = Math.floor(data[i + 3] * alpha);
+        }
+      }
+
+      this.chromaCtx.putImageData(imgData, 0, 0);
+      ctx.drawImage(this.chromaCanvas, x, y, width, height);
+    } catch (err) {
+      console.warn("Chroma key processing fallback", err);
+      try {
+        ctx.drawImage(element, x, y, width, height);
+      } catch(e) {}
+    }
   }
 
   // Draw everything onto target canvas (either screen preview canvas or high-res export canvas)

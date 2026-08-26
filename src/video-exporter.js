@@ -22,10 +22,17 @@ export class VideoExporter {
       'video/webm;codecs=vp8,opus',
       'video/webm;codecs=h264,opus',
       'video/webm',
+      'video/mp4;codecs=avc1,mp4a',
       'video/mp4;codecs=h264,aac',
       'video/mp4'
     ];
-    return types.filter(t => MediaRecorder.isTypeSupported(t));
+    return types.filter(t => {
+      try {
+        return MediaRecorder.isTypeSupported(t);
+      } catch (e) {
+        return false;
+      }
+    });
   }
 
   async exportVideo(
@@ -52,49 +59,51 @@ export class VideoExporter {
     let audioTrack = null;
     let nativeAudioStream = null;
     let dest = null;
+    let localSpeakerGain = null;
     
     try {
       // 1. Capture the audio stream
-      // For custom uploaded audio files: we capture the decoded stream directly from the
-      // HTML5 audio element's native playback engine. This runs out-of-process in Chrome,
-      // completely bypassing the Web Audio context processing thread. This guarantees
-      // 100% click-free, pop-free, and high-fidelity sound, even if canvas rendering stutters!
       if (!this.audioManager.isDemo && this.audioManager.audioElement) {
         const audioEl = this.audioManager.audioElement;
         audioEl.muted = false;
         audioEl.volume = 1.0;
         
         if (audioEl.captureStream) {
-          nativeAudioStream = audioEl.captureStream();
+          try { nativeAudioStream = audioEl.captureStream(); } catch(e) {}
         } else if (audioEl.mozCaptureStream) {
-          nativeAudioStream = audioEl.mozCaptureStream();
+          try { nativeAudioStream = audioEl.mozCaptureStream(); } catch(e) {}
         }
         
-        if (nativeAudioStream) {
+        if (nativeAudioStream && nativeAudioStream.getAudioTracks().length > 0) {
           audioTrack = nativeAudioStream.getAudioTracks()[0];
         }
       }
       
-      // Fallback for procedural synth demo track
-      if (!audioTrack) {
-        dest = audioCtx.createMediaStreamDestination();
-        this.audioManager.gainNode.connect(dest);
-        audioTrack = dest.stream.getAudioTracks()[0];
+      // Fallback for procedural synth demo track or when captureStream is not ready
+      if (!audioTrack && this.audioManager.gainNode) {
+        try {
+          dest = audioCtx.createMediaStreamDestination();
+          this.audioManager.gainNode.connect(dest);
+          audioTrack = dest.stream.getAudioTracks()[0];
+        } catch(e) {
+          console.warn("Could not create Web Audio destination track", e);
+        }
       }
       
       // 2. Setup local muting logic for monitoring speakers
-      // We disconnect the Web Audio graph from the destination speakers so no sound leaks,
-      // but keep the element unmuted at volume 1.0 so its native captureStream remains active!
-      this.audioManager.gainNode.disconnect(audioCtx.destination);
-      
-      const localSpeakerGain = audioCtx.createGain();
-      this.audioManager.gainNode.connect(localSpeakerGain);
-      localSpeakerGain.connect(audioCtx.destination);
-      
-      if (muteAudioDuringExport) {
-        localSpeakerGain.gain.setValueAtTime(0.0, audioCtx.currentTime); // Muted locally
-      } else {
-        localSpeakerGain.gain.setValueAtTime(0.8, audioCtx.currentTime); // Heard locally
+      if (this.audioManager.gainNode) {
+        try {
+          this.audioManager.gainNode.disconnect(audioCtx.destination);
+          localSpeakerGain = audioCtx.createGain();
+          this.audioManager.gainNode.connect(localSpeakerGain);
+          localSpeakerGain.connect(audioCtx.destination);
+          
+          if (muteAudioDuringExport) {
+            localSpeakerGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+          } else {
+            localSpeakerGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+          }
+        } catch(e) {}
       }
       
       const exportStart = this.audioManager.trimStart || 0;
@@ -104,7 +113,7 @@ export class VideoExporter {
       // Play background video elements from the start if we have one
       if (this.canvasEditor.background.type === 'video' && this.canvasEditor.background.element) {
         this.canvasEditor.background.element.currentTime = exportStart;
-        this.canvasEditor.background.element.play().catch(e => console.log(e));
+        this.canvasEditor.background.element.play().catch(e => {});
       }
       
       // 3. Setup canvas capture stream with chosen FPS
@@ -117,14 +126,26 @@ export class VideoExporter {
       }
       const combinedStream = new MediaStream(tracks);
       
-      // 4. Instantiate MediaRecorder with custom bitrates
-      const options = {
-        mimeType: mimeType,
-        videoBitsPerSecond: videoBitrate,
-        audioBitsPerSecond: audioBitrate
-      };
+      // 4. Instantiate MediaRecorder with fallback tolerance
+      let recorder = null;
+      const recordOptions = [
+        { mimeType: mimeType, videoBitsPerSecond: videoBitrate, audioBitsPerSecond: audioBitrate },
+        { mimeType: mimeType, videoBitsPerSecond: videoBitrate },
+        { mimeType: mimeType },
+        {}
+      ];
       
-      this.recorder = new MediaRecorder(combinedStream, options);
+      for (const opt of recordOptions) {
+        try {
+          recorder = new MediaRecorder(combinedStream, opt);
+          break;
+        } catch (e) {}
+      }
+      
+      if (!recorder) {
+        recorder = new MediaRecorder(combinedStream);
+      }
+      this.recorder = recorder;
       
       this.recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
@@ -148,41 +169,58 @@ export class VideoExporter {
         }
         
         // Restore direct audio connections
-        if (dest) {
+        if (dest && this.audioManager.gainNode) {
           try { this.audioManager.gainNode.disconnect(dest); } catch(e) {}
         }
-        this.audioManager.gainNode.disconnect(localSpeakerGain);
-        localSpeakerGain.disconnect(audioCtx.destination);
-        this.audioManager.gainNode.connect(audioCtx.destination);
+        if (localSpeakerGain && this.audioManager.gainNode) {
+          try {
+            this.audioManager.gainNode.disconnect(localSpeakerGain);
+            localSpeakerGain.disconnect(audioCtx.destination);
+            this.audioManager.gainNode.connect(audioCtx.destination);
+          } catch(e) {}
+        }
         
         // Create Blob and trigger complete callback
-        const blob = new Blob(this.chunks, { type: mimeType });
+        const actualMimeType = this.recorder.mimeType || mimeType || 'video/webm';
+        const blob = new Blob(this.chunks, { type: actualMimeType });
         this.isExporting = false;
         if (this.onComplete) {
-          this.onComplete(blob, mimeType, width, height);
+          this.onComplete(blob, actualMimeType, width, height);
         }
       };
       
       // 5. Start Export
       this.audioManager.seek(exportStart);
-      this.recorder.start();
+      try {
+        this.recorder.start(250);
+      } catch (e) {
+        this.recorder.start();
+      }
       this.audioManager.play();
       
       let lastFrameTime = 0;
-      const fpsInterval = 1000 / fps; // Custom FPS interval
+      const fpsInterval = 1000 / fps;
+      const exportStartWall = performance.now();
       
       const renderFrame = (timestamp) => {
         if (!this.isExporting) return;
         
-        // Cap the offscreen rendering to the chosen frame rate
         const elapsed = timestamp - lastFrameTime;
         if (elapsed >= fpsInterval) {
           lastFrameTime = timestamp - (elapsed % fpsInterval);
           
-          const curTime = this.audioManager.currentTime;
+          const curAudioTime = this.audioManager.currentTime;
+          const wallElapsedSec = (performance.now() - exportStartWall) / 1000;
+          
+          // High-precision time sync between audio and video
+          const curTime = Math.min(exportEnd, Math.max(curAudioTime, exportStart + wallElapsedSec));
           
           // Render current state to offscreen export canvas
-          this.canvasEditor.render(this.exportCanvas, curTime);
+          try {
+            this.canvasEditor.render(this.exportCanvas, curTime);
+          } catch (renderErr) {
+            console.error("Frame render error:", renderErr);
+          }
           
           // Progress update based on trimmed duration
           const progress = Math.min(100, Math.max(0, Math.floor(((curTime - exportStart) / exportTotal) * 100)));
@@ -190,9 +228,15 @@ export class VideoExporter {
             this.onProgress(progress);
           }
           
-          // End check
-          if (curTime >= exportEnd || !this.audioManager.isPlaying) {
-            this.recorder.stop();
+          // End check: audio reached end or wall time completed duration
+          const hasEnded = (curAudioTime >= exportEnd && wallElapsedSec > 0.5) ||
+                           (wallElapsedSec >= exportTotal + 0.4) ||
+                           (!this.audioManager.isPlaying && wallElapsedSec > 1.2);
+                           
+          if (hasEnded) {
+            if (this.recorder && this.recorder.state === 'recording') {
+              this.recorder.stop();
+            }
             return;
           }
         }
