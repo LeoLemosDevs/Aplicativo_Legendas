@@ -435,6 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
     lyricsSync.cancelSync();
     lyricsInputPanel.classList.remove('hidden');
     lyricsSyncHud.classList.add('hidden');
+    if (lyricsSync.words.length > 0) {
+      lyricsEditorPanel.classList.remove('hidden');
+    }
   });
 
   lyricsSync.onSyncComplete = () => {
@@ -665,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showTimingGridEditor() {
-    lyricsInputPanel.classList.add('hidden');
+    lyricsInputPanel.classList.remove('hidden'); // Keep textarea accessible so user can paste/edit lyrics at any time
     lyricsSyncHud.classList.add('hidden');
     lyricsEditorPanel.classList.remove('hidden');
     
