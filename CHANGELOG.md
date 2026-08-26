@@ -2,17 +2,16 @@
 
 Todas as alterações notáveis deste projeto estão documentadas neste arquivo.
 
-## [1.2.0] - 2026-08-26
-### ✨ Adicionado
-- **Importação Direta de .SRT:** Card com botão e upload imediato na aba de Letras sem necessidade de sincronização manual.
-- **Edição Interativa na Timeline:** Capacidade de arrastar e redimensionar blocos de legendas com o mouse (início, fim e deslocamento total).
-- **Tooltip Dinâmico na Timeline:** Visualização em tempo real dos tempos de início, término e duração da frase ao arrastar.
-- **Compensação de Atraso (Timing Offset):** Slider para compensar o tempo de reação motora durante a gravação da sincronia.
-
-### ⚡ Otimizações & Correções
-- **Áudio Nativo sem Engasgos:** Remoção de `createMediaElementSource` para eliminar ruídos, cliques e travamentos causados por incompatibilidade de taxas de amostragem no Web Audio.
-- **Sincronia Precisa de Legendas:** Corrigida a lógica de renderização em tempo real para exibir exatamente a frase cantada no momento sem exigir `end` prévio.
-- **Performance de Renderização:** Taxa estável de 60 FPS com buffer desacoplado.
+## [1.0.0] - 2026-08-26 (Versão 1.0 Funcionando)
+### 🚀 Recursos Completos em Funcionamento
+- **Áudio Nativo Cristalino:** Reprodução direta e estável a 60 FPS sem ruídos, cliques ou engasgos.
+- **Destaque Inteligente da Letra:** Somente a frase sendo cantada no momento recebe a cor de destaque, retornando à cor base ao passar.
+- **Controle de Zoom da Frase Ativa:** Slider independente para ampliação e destaque proporcional da linha atual.
+- **Importação & Exportação .SRT:** Compatibilidade total SubRip com codificação limpa UTF-8.
+- **Timeline Interativa (Mouse Drag & Resize):** Ajuste fino de tempos arrastando com o mouse na trilha de legendas.
+- **Desmarcar ao Clicar Fora:** Limpeza imediata de seleções ao clicar em qualquer espaço livre.
+- **Vídeo 9:16 e 16:9:** Suporte completo para Shorts/TikTok e YouTube Padrão com Chroma Key e múltiplas camadas.
+- **Painel de Exportação Avançado:** Configuração de bitrate, codecs (MP4/H.264/VP9) e FPS.
 
 ---
 
