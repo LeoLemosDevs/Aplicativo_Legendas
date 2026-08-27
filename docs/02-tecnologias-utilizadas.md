@@ -21,18 +21,20 @@ O **Karaoke Shorts Studio** foi desenvolvido com tecnologias web modernas focada
 
 ### 1. HTML5 Canvas 2D API (`CanvasRenderingContext2D`)
 - **Renderização Gráfica em Tempo Real:** Renderização do canvas de preview e do canvas de exportação a 60 FPS com aceleração por hardware (GPU).
-- **Tipografia Avançada:** Aplicação de contorno (`strokeText`), preenchimento (`fillText`), medição de largura de texto (`measureText`) e cálculo de quebras de linha responsivas.
-- **Transformações & Escalas:** Manipulação de matrizes de transformação para suporte a proporções 9:16 (Shorts) e 16:9 (Horizontal).
+- **Filtros e Efeitos de Vídeo:** Manipulação de `ctx.filter` (brilho, contraste, saturação, sépia, rotação de matiz e desfoque suave) e gradientes radiais para efeito de vinheta escura.
+- **Tipografia e Animações:** Motor de interpolação matemática de posição, opacidade e escala para animações de entrada e saída de textos (*Fade, Slide, Zoom, Bounce*).
+- **Offscreen Canvas & Chroma Key:** Processamento de pixels em canvas desacoplado para remoção ultra-rápida de fundo verde/azul em tempo real.
 
-### 2. Web Audio API & HTML5 Audio Native Pipeline
-- **Áudio Nativo:** Roteamento via `HTMLAudioElement` desvinculado do processamento síncrono para eliminar ruídos, estalos e engasgos em taxas de amostragem altas.
+### 2. Web Audio API (`AudioContext`, `AnalyserNode`, `GainNode`)
+- **Análise de Frequências (FFT):** Extração de dados sonoros em tempo real com `analyser.getByteFrequencyData()` para alimentar os 7 modelos de espectro de áudio.
+- **Detecção de Graves & Batidas:** Análise de bandas de frequência graves (< 250 Hz) para disparar spikes e expansões visuais (*Beat Punch*).
 - **Sintetizador Procedural de Demonstração:** Emissão de timbres harmônicos com múltiplos osciladores (`OscillatorNode`) e envelopes de ganho (`GainNode`) para execução sem necessidade de arquivos externos.
-- **Decodificação de Forma de Onda:** Análise de canais de áudio via `decodeAudioData` e extração de picos de amplitude (`extractPeaks`) para desenho da forma de onda.
 
 ### 3. MediaStream Recording API (`MediaRecorder`)
-- **Gravação de Vídeo Local:** Captura em tempo real do stream de vídeo gerado pelo canvas (`canvas.captureStream(fps)`) e do áudio (`audioElement.captureStream()`).
-- **Codificação de Vídeo em Vários Codecs:** Suporte aos codecs `video/webm;codecs=vp9`, `video/webm;codecs=h264`, `video/webm;codecs=vp8` e `video/mp4;codecs=h264,aac`.
-- **Geração de Blobs e Download:** Montagem do arquivo final em memória e disparo de download automático.
+- **Gravação em Fatias Contínuas (Chunks de 250ms):** Captura contínua de streams combinados de vídeo (`canvas.captureStream(fps)`) e áudio (`audioElement.captureStream()`).
+- **Codificação com Fallback Automático:** Suporte em cascata aos codecs `video/webm;codecs=vp9,opus`, `video/webm;codecs=h264`, `video/webm;codecs=vp8` e `video/mp4`.
 
-### 4. Drag and Drop & FileReader APIs
-- **Importação de Arquivos:** Leitura de arquivos `.mp3`, `.wav`, `.png`, `.jpg`, `.mp4` e `.srt` diretamente do sistema de arquivos via arrastar e soltar global ou inputs de arquivo.
+### 4. LocalStorage & JSON Project Serialization API
+- **Arquivos `.kproject`:** Serialização completa do projeto em JSON contendo legendas, posições, filtros, animações e tempos.
+- **Auto-Save Local:** Persistência automática no armazenamento local do navegador para proteção contra fechamentos acidentais.
+
